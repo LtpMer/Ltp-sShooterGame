@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ltp's 2D Shooter Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* General body styling */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: #e0e0e0;
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden; /* Prevent scrollbars */
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Game container styling */
+        .game-container {
+            background-color: #0d0d1a;
+            border: 5px solid #00f0ff;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.7);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            max-width: 90%; /* Max width for responsiveness */
+            width: 800px; /* Desired width */
+        }
+
+        /* Canvas styling */
+        canvas {
+            background-color: #000000;
+            display: block;
+            border: 3px solid #00c0ff;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.5);
+            max-width: 100%; /* Ensure canvas scales within container */
+            height: auto; /* Maintain aspect ratio */
+        }
+
+        /* Info container (score, game over) styling */
+        .info-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .info-item {
+            font-size: 1.2em;
+            color: #00f0ff;
+            text-shadow: 0 0 5px #00f0ff;
+        }
+
+        /* Boss health bar styling */
+        #bossHealthContainer {
+            width: 100%;
+            height: 20px;
+            background-color: #333;
+            border: 2px solid #ff0077;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none; /* Hidden by default */
+            box-shadow: 0 0 15px rgba(255, 0, 119, 0.7);
+        }
+
+        #bossHealthBar {
+            height: 100%;
+            width: 100%; /* Will be updated by JS */
+            background-color: #ff0077;
+            transition: width 0.1s linear;
+        }
+
+        /* Game message styling */
+        .game-message {
+            font-size: 1.5em;
+            color: #ff0077;
+            text-shadow: 0 0 8px #ff0077;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 1.5em; /* Prevent layout shift when message appears */
+        }
+        .game-message.small-text {
+            font-size: 1em;
+        }
+
+
+        /* Button styling */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap; /* Allow buttons to wrap on small screens */
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        button {
+            background-color: #4a0077;
+            color: #fff;
+            border: 2px solid #ff00ff;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1em;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255, 0, 255, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            flex-grow: 1; /* Allow buttons to grow and fill space */
+            max-width: 200px; /* Limit button width */
+        }
+
+        button:hover {
+            background-color: #6a0097;
+            box-shadow: 0 5px 20px rgba(255, 0, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(255, 0, 255, 0.4);
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300%;
+            height: 300%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.7s ease-in-out;
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            z-index: 0;
+        }
+
+        button:hover::before {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        /* Instructions styling */
+        .instructions {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #aaa;
+            text-align: center;
+            line-height: 1.5;
+            max-width: 600px;
+        }
+
+        /* Styling for the level map / level selection */
+        #levelMapContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Vertically center the nodes */
+            gap: 8px;
+            margin-bottom: 15px; /* Spacing below map, above canvas */
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            box-shadow: inset 0 0 5px rgba(0, 240, 255, 0.3);
+            flex-wrap: wrap; /* Allow map nodes to wrap */
+            max-width: 100%; /* Ensure map fits within container */
+        }
+
+        .level-node {
+            width: 35px; /* Slightly larger for clickable areas */
+            height: 35px;
+            background-color: #333;
+            border: 2px solid #555;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9em; /* Larger font for readability */
+            font-weight: bold;
+            color: #888;
+            cursor: pointer; /* Indicate clickability */
+            transition: all 0.2s ease;
+        }
+
+        .level-node:hover {
+            transform: scale(1.15);
+            background-color: #555;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .level-node.completed {
+            background-color: #008800; /* Green for completed */
+            border-color: #00ff00;
+            color: #fff;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+        }
+
+        .level-node.current {
+            background-color: #ffaa00; /* Orange for current */
+            border-color: #ffee00;
+            color: #000;
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.7);
+            transform: scale(1.1);
+        }
+
+        /* Style for locked levels */
+        .level-node.locked {
+            background-color: #222; /* Darker background */
+            border-color: #333;
+            color: #666; /* Dimmed text */
+            cursor: not-allowed; /* No interaction cursor */
+            opacity: 0.6; /* Slight transparency */
+            box-shadow: none; /* No glow */
+        }
+
+        .level-node.locked:hover {
+            transform: none; /* No hover scale */
+            background-color: #222; /* Maintain background */
+            box-shadow: none; /* No hover glow */
+        }
+
+
+        /* Shop specific styling */
+        #shopScreen {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .shop-item {
+            background-color: #1c1c3a;
+            border: 2px solid #00c0ff;
+            border-radius: 10px;
+            padding: 15px;
+            width: 80%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 0 15px rgba(0, 192, 255, 0.5);
+            text-align: left;
+        }
+
+        .shop-item h3 {
+            margin: 0;
+            color: #ffdd00;
+            font-size: 1.1em;
+        }
+
+        .shop-item p {
+            margin: 0;
+            font-size: 0.8em;
+            color: #b0b0b0;
+        }
+
+        .shop-item .cost {
+            font-size: 1em;
+            color: #00ff77;
+            font-weight: bold;
+        }
+
+        .shop-item button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 15px;
+                gap: 10px;
+                width: 95%;
+            }
+
+            canvas {
+                border-width: 2px;
+            }
+
+            .info-item {
+                font-size: 1em;
+            }
+
+            .game-message {
+                font-size: 1.2em;
+            }
+
+            button {
+                padding: 8px 15px;
+                font-size: 0.9em;
+                max-width: 100%; /* Full width for buttons on tiny screens */
+            }
+
+            .instructions {
+                font-size: 0.8em;
+            }
+
+            #levelMapContainer {
+                gap: 5px; /* Reduce gap on smaller screens */
+                padding: 5px;
+            }
+
+            .level-node {
+                width: 30px; /* Smaller nodes on mobile */
+                height: 30px;
+                font-size: 0.8em;
+            }
+
+            .shop-item {
+                width: 95%; /* Adjust width for small screens */
+            }
+        }
+    </style>
+    <!-- Tone.js library for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+</head>
+<body>
+    <div class="game-container">
+        <div class="info-container">
+            <div id="playerPoundsDisplay" class="info-item">P$: 0</div>
+            <div id="healthDisplay" class="info-item">Health: 3</div>
+            <div id="levelDisplay" class="info-item" style="display: none;">Level: 1</div>
+        </div>
+        <div id="bossHealthContainer">
+            <div id="bossHealthBar"></div>
+        </div>
+        <div id="levelMapContainer" style="display: none;"></div> <!-- Level Map / Selection Container -->
+        <canvas id="gameCanvas"></canvas>
+        <div id="gameMessage" class="game-message"></div>
+
+        <!-- Shop Screen -->
+        <div id="shopScreen">
+            <h2 style="color: #00f0ff; text-shadow: 0 0 5px #00f0ff;">Shop</h2>
+            <div id="shopItemsContainer">
+                <!-- Shop items will be injected here by JavaScript -->
+            </div>
+            <button id="backToMenuFromShopBtn">Back to Main Menu</button>
+        </div>
+
+        <!-- Main Menu Buttons -->
+        <div id="mainMenuButtons" class="button-group">
+            <button id="levelModeBtn">Level Mode</button>
+            <button id="endlessModeBtn">Endless Mode</button>
+            <button id="shopBtn">Shop</button>
+        </div>
+
+        <!-- In-Game Buttons -->
+        <div id="inGameButtons" class="button-group" style="display: none;">
+            <button id="nextLevelBtn" style="display: none;">Next Level</button>
+            <button id="resetGameBtn" style="display: none;">Play Again</button>
+            <button id="returnToMenuBtn" style="display: none;">Main Menu</button>
+        </div>
+    </div>
+    <div id="instructionsText" class="instructions">
+        <p>Instructions:</p>
+        <p>Use LEFT and RIGHT arrow keys to move.</p>
+        <p>Press SPACEBAR to shoot.</p>
+        <p>Destroy enemies to earn P$. Catch falling bonuses!</p>
+        <p>Defeat bosses for permanent speed upgrades!</p>
+    </div>
+
+    <script>
+        // Get canvas and context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set initial canvas dimensions
+        const CANVAS_WIDTH = 600;
+        const CANVAS_HEIGHT = 400;
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+
+        // Get display elements
+        const playerPoundsDisplay = document.getElementById('playerPoundsDisplay');
+        const healthDisplay = document.getElementById('healthDisplay');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const gameMessage = document.getElementById('gameMessage');
+        const bossHealthContainer = document.getElementById('bossHealthContainer');
+        const bossHealthBar = document.getElementById('bossHealthBar');
+        const instructionsText = document.getElementById('instructionsText');
+        const levelMapContainer = document.getElementById('levelMapContainer');
+        const shopScreen = document.getElementById('shopScreen');
+        const shopItemsContainer = document.getElementById('shopItemsContainer');
+
+        // Get button elements
+        const mainMenuButtons = document.getElementById('mainMenuButtons');
+        const inGameButtons = document.getElementById('inGameButtons');
+        const levelModeBtn = document.getElementById('levelModeBtn');
+        const endlessModeBtn = document.getElementById('endlessModeBtn');
+        const shopBtn = document.getElementById('shopBtn');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+        const resetGameBtn = document.getElementById('resetGameBtn');
+        const returnToMenuBtn = document.getElementById('returnToMenuBtn');
+        const backToMenuFromShopBtn = document.getElementById('backToMenuFromShopBtn');
+
+
+        // Game state variables
+        let gameRunning = false;
+        let gameMode = null; // 'level' or 'endless'
+        let currentLevelIndex = 0; // 0-indexed for levels array. This also acts as the highest unlocked level.
+        let completedLevels = new Set(); // Stores indices of completed levels for visual feedback
+        let playerPounds = 0; // Renamed from 'score'
+        let playerHealth = 3;
+        let playerMaxHealth = 3; // Max health, can be upgraded
+        let animationId;
+        let bossSpawnScoreThreshold = 500; // For endless mode only
+
+        // Level Mode specific variables
+        let enemiesKilledThisLevel = 0;
+        let maxEnemiesToSpawnForLevel = 0;
+        let enemiesSpawnedInLevel = 0;
+        let levelIsBossFight = false;
+        let levelCompletionHandled = false; // Flag to prevent multiple calls to level completion logic
+
+        // Player properties
+        const player = {
+            width: 40,
+            height: 20,
+            x: CANVAS_WIDTH / 2 - 20,
+            y: CANVAS_HEIGHT - 40,
+            baseSpeed: 5, // Base speed
+            currentSpeed: 5, // Current speed, can be upgraded
+            bulletDamage: 1, // Base bullet damage, can be upgraded
+            color: '#00ff77'
+        };
+
+        // Bullet properties
+        const bullets = [];
+        const bulletSpeed = 7;
+        const bulletWidth = 4;
+        const bulletHeight = 10;
+        const bulletColor = '#ffdd00';
+        let currentShootCooldown = 500; // 0.5 seconds reload time
+        const initialShootCooldown = 500; // Default cooldown
+        let canShoot = true;
+
+        // Multi-shot power-up variables (still temporary, dropped by enemies)
+        let multiShotCount = 1; // 1 for single shot, 2 for double, 3 for triple
+        let multiShotEffectEndTime = 0;
+        const multiShotDuration = 5000; // 5 seconds
+
+        // Cooldown reduction power-up variables (still temporary, dropped by enemies)
+        let cooldownEffectEndTime = 0;
+        const cooldownReductionDuration = 7000; // 7 seconds
+        const reducedCooldown = 150; // New cooldown when active
+
+        // Enemy properties
+        let enemies = [];
+        const enemySpeed = 1; // Base enemy speed
+        const enemyWidth = 30;
+        const enemyHeight = 30;
+        const normalEnemyColor = '#ff0077';
+        const heavyEnemyColor = '#cc00cc'; // Purple for heavy enemies
+        const shooterEnemyColor = '#ff5500'; // Orange for shooter enemies
+        const bossMinionColor = '#ff00ff'; // Bright pink for boss minions
+
+        let enemySpawnInterval = 1000; // milliseconds, dynamic
+        let lastEnemySpawnTime = 0;
+        const enemyDropBonusChance = 0.3; // 30% chance to drop a bonus
+
+        const enemyTypes = {
+            NORMAL: { health: 1, color: normalEnemyColor, canShoot: false, value: 10 },
+            HEAVY: { health: 2, color: heavyEnemyColor, canShoot: false, value: 20 },
+            SHOOTER: { health: 1, color: shooterEnemyColor, canShoot: true, shootCooldown: 2000, value: 15 },
+            BOSS_MINION: { health: 2, color: bossMinionColor, canShoot: true, shootCooldown: 1500, speed: 1.5, value: 25 } // New boss minion type
+        };
+
+        // Enemy bullet properties
+        const enemyBullets = [];
+        const enemyBulletSpeed = 3;
+        const enemyBulletWidth = 6;
+        const enemyBulletHeight = 6;
+        const enemyBulletColor = '#00ffff'; // Cyan for enemy bullets
+
+        // Boss properties (specifics for Level 10, 20, 30 bosses)
+        const boss = {
+            exists: false,
+            health: 0,
+            maxHealth: 0,
+            x: 0,
+            y: 50, // Boss starts slightly down from top
+            width: 80,
+            height: 80,
+            color: '#8800ff', // A strong purple for the boss
+            speed: 2, // Boss base movement speed
+            direction: 1, // 1 for right, -1 for left
+            shootCooldownSpread: 1500,
+            shootCooldownTracking: 3000,
+            lastShotTimeSpread: 0,
+            lastShotTimeTracking: 0,
+            minionSummonThresholds: [], // Array of health % to summon at
+            summonedMinionsAtThreshold: [], // Track each threshold
+            bulletSpeedOverride: enemyBulletSpeed // For bosses' custom bullets
+        };
+
+        // Bonus properties
+        const bonuses = [];
+        const bonusSpeed = 2;
+        const bonusWidth = 20;
+        const bonusHeight = 20;
+
+        const bonusTypes = {
+            HEALTH: { color: '#00ff00', label: '+' },
+            COOLDOWN: { color: '#00ffff', label: 'C' },
+            MULTISHOT: { color: '#ff8800', label: 'M' }
+        };
+
+        // Particle System
+        const particles = [];
+        const particleGravity = 0.05; // Gravity for particles
+
+        // Keyboard input state
+        const keys = {
+            ArrowLeft: false,
+            ArrowRight: false,
+            Space: false
+        };
+
+        // Shop Items Configuration
+        const shopItems = [
+            {
+                id: 'player_speed_1',
+                name: "Speed Boost I",
+                description: "Increase player movement speed by 1.",
+                cost: 100,
+                effect: () => { player.currentSpeed += 1; player.baseSpeed += 1; }, // Both base and current speed for persistence
+                maxPurchases: 3, // Can buy 3 times
+                currentPurchases: 0
+            },
+            {
+                id: 'player_speed_2',
+                name: "Speed Boost II",
+                description: "Increase player movement speed by 2.",
+                cost: 300,
+                effect: () => { player.currentSpeed += 2; player.baseSpeed += 2; },
+                maxPurchases: 1,
+                currentPurchases: 0
+            },
+            {
+                id: 'max_health_upgrade',
+                name: "Max Health Upgrade",
+                description: "Increase max player health by 1.",
+                cost: 200,
+                effect: () => { playerMaxHealth += 1; playerHealth = playerMaxHealth; }, // Also heal to full
+                maxPurchases: 2,
+                currentPurchases: 0
+            },
+            {
+                id: 'bullet_damage_upgrade',
+                name: "Bullet Damage +1",
+                description: "Increase your bullet damage by 1.",
+                cost: 150,
+                effect: () => { player.bulletDamage += 1; },
+                maxPurchases: 3,
+                currentPurchases: 0
+            }
+        ];
+
+
+        // Levels Configuration (Updated for 30 levels and 3 bosses)
+        const levels = [];
+
+        // Helper to add levels
+        function addLevels(start, end, config) {
+            for (let i = start; i <= end; i++) {
+                levels.push({
+                    name: `Level ${i}`,
+                    enemyCount: config.baseEnemyCount + (i - start) * config.enemyCountIncrease,
+                    enemySpeed: config.baseEnemySpeed + (i - start) * config.enemySpeedIncrease,
+                    enemySpawnInterval: Math.max(config.minSpawnInterval, config.baseSpawnInterval - (i - start) * config.spawnIntervalDecrease),
+                    heavyEnemyChance: config.heavyEnemyChance,
+                    shooterEnemyChance: config.shooterEnemyChance,
+                    bossLevel: false,
+                    message: `Level ${i}: ${config.tierName}`
+                });
+            }
+        }
+
+        // Tier 1: Easy (Levels 1-5)
+        addLevels(1, 5, {
+            tierName: "Easy",
+            baseEnemyCount: 5,
+            enemyCountIncrease: 2,
+            baseEnemySpeed: 0.5,
+            enemySpeedIncrease: 0.1,
+            baseSpawnInterval: 2500,
+            spawnIntervalDecrease: 200,
+            minSpawnInterval: 1500,
+            heavyEnemyChance: 0.05,
+            shooterEnemyChance: 0.02
+        });
+
+        // Tier 2: Medium (Levels 6-9, Level 10 is Boss)
+        addLevels(6, 9, {
+            tierName: "Medium",
+            baseEnemyCount: 15,
+            enemyCountIncrease: 3,
+            baseEnemySpeed: 0.9,
+            enemySpeedIncrease: 0.15,
+            baseSpawnInterval: 1500,
+            spawnIntervalDecrease: 150,
+            minSpawnInterval: 800,
+            heavyEnemyChance: 0.2,
+            shooterEnemyChance: 0.1
+        });
+        // Level 10: First Boss
+        levels.push({
+            name: "The Guardian", // New boss name
+            enemyCount: 0,
+            enemySpeed: 0,
+            enemySpawnInterval: 9999999,
+            heavyEnemyChance: 0,
+            shooterEnemyChance: 0,
+            bossLevel: true,
+            message: "Level 10: Confront The Guardian!",
+            bossSpecifics: {
+                health: 400,
+                movementSpeed: 1.8,
+                spreadShotInterval: 1800,
+                trackingShotInterval: 3500,
+                bulletSpeed: 3.5,
+                minionsToSummon: 0, // No minions for this boss
+                minionSummonThresholds: [] // No minion summon for this boss
+            }
+        });
+
+        // Tier 3: Medium-Hard (Levels 11-19, Level 20 is Boss)
+        addLevels(11, 19, {
+            tierName: "Medium-Hard",
+            baseEnemyCount: 25,
+            enemyCountIncrease: 4,
+            baseEnemySpeed: 1.2,
+            enemySpeedIncrease: 0.1,
+            baseSpawnInterval: 1000,
+            spawnIntervalDecrease: 100,
+            minSpawnInterval: 500,
+            heavyEnemyChance: 0.35,
+            shooterEnemyChance: 0.2
+        });
+        // Level 20: Second Boss
+        levels.push({
+            name: "The Sentinel", // New boss name
+            enemyCount: 0,
+            enemySpeed: 0,
+            enemySpawnInterval: 9999999,
+            heavyEnemyChance: 0,
+            shooterEnemyChance: 0,
+            bossLevel: true,
+            message: "Level 20: The Sentinel Awaits!",
+            bossSpecifics: {
+                health: 700,
+                movementSpeed: 2.5,
+                spreadShotInterval: 1000,
+                trackingShotInterval: 2000,
+                bulletSpeed: 4.5,
+                minionsToSummon: 3,
+                minionSummonThresholds: [0.7] // Summons 3 minions at 70% health
+            }
+        });
+
+        // Tier 4: Hard (Levels 21-29, Level 30 is Boss)
+        addLevels(21, 29, {
+            tierName: "Hard",
+            baseEnemyCount: 35,
+            enemyCountIncrease: 5,
+            baseEnemySpeed: 1.5,
+            enemySpeedIncrease: 0.1,
+            baseSpawnInterval: 700,
+            spawnIntervalDecrease: 50,
+            minSpawnInterval: 300,
+            heavyEnemyChance: 0.5,
+            shooterEnemyChance: 0.35
+        });
+        // Level 30: Final Boss - "The Annihilator"
+        levels.push({
+            name: "The Annihilator",
+            enemyCount: 0,
+            enemySpeed: 0,
+            enemySpawnInterval: 9999999,
+            heavyEnemyChance: 0,
+            shooterEnemyChance: 0,
+            bossLevel: true,
+            message: "Level 30: CONFRONT THE ANNIHILATOR!",
+            bossSpecifics: {
+                health: 1200,
+                movementSpeed: 3,
+                spreadShotInterval: 800,
+                trackingShotInterval: 1500,
+                bulletSpeed: 5,
+                minionsToSummon: 4, // Summons 4 minions per threshold
+                minionSummonThresholds: [0.9, 0.5, 0.2] // Summons at 90%, 50%, 20% health
+            }
+        });
+
+
+        // Sound effects setup
+        const playerShootSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "triangle" },
+            envelope: {
+                attack: 0.001,
+                decay: 0.1,
+                sustain: 0.05,
+                release: 0.1
+            }
+        }).toDestination();
+
+        const hitSynth = new Tone.MembraneSynth({
+            pitchDecay: 0.05,
+            octaves: 4,
+            oscillator: {
+                type: 'sine'
+            },
+            envelope: {
+                attack: 0.001,
+                decay: 0.4,
+                sustain: 0.01,
+                release: 0.8,
+                attackCurve: 'exponential'
+            }
+        }).toDestination();
+
+        const explosionSynth = new Tone.NoiseSynth({
+            envelope: {
+                attack: 0.005,
+                decay: 0.2,
+                sustain: 0.0,
+                release: 0.3
+            },
+            volume: -10
+        }).toDestination();
+
+        // Event Listeners for keyboard input
+        window.addEventListener('keydown', (e) => {
+            // Level skipping 'C' key functionality removed as per request
+            // if (e.code === 'KeyC') { /* ... old skipping logic ... */ }
+
+            // Handle regular game keys
+            if (e.code in keys) {
+                keys[e.code] = true;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code in keys) {
+                keys[e.code] = false;
+            }
+        });
+
+        // Function to draw the player
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+
+        // Function to update player position based on input
+        function updatePlayer() {
+            if (keys.ArrowLeft && player.x > 0) {
+                player.x -= player.currentSpeed; // Use currentSpeed
+            }
+            if (keys.ArrowRight && player.x < CANVAS_WIDTH - player.width) {
+                player.x += player.currentSpeed; // Use currentSpeed
+            }
+
+            // Handle shooting with cooldown
+            if (keys.Space && canShoot) {
+                shootPlayerBullet();
+                canShoot = false;
+                setTimeout(() => {
+                    canShoot = true;
+                }, currentShootCooldown); // Use current dynamic cooldown
+            }
+        }
+
+        // Function to create new player bullets (handles multi-shot)
+        function shootPlayerBullet() {
+            const baseBulletX = player.x + player.width / 2 - bulletWidth / 2;
+            playerShootSynth.triggerAttackRelease("C4", "8n"); // Play sound
+
+            const bulletDetails = {
+                width: bulletWidth,
+                height: bulletHeight,
+                color: bulletColor,
+                damage: player.bulletDamage // Apply player's current bullet damage
+            };
+
+            if (multiShotCount === 1) {
+                bullets.push({ x: baseBulletX, y: player.y - bulletHeight, ...bulletDetails });
+            } else if (multiShotCount === 2) {
+                bullets.push({ x: baseBulletX - 8, y: player.y - bulletHeight, ...bulletDetails });
+                bullets.push({ x: baseBulletX + 8, y: player.y - bulletHeight, ...bulletDetails });
+            } else if (multiShotCount === 3) {
+                bullets.push({ x: baseBulletX, y: player.y - bulletHeight, ...bulletDetails });
+                bullets.push({ x: baseBulletX - 15, y: player.y - bulletHeight, ...bulletDetails });
+                bullets.push({ x: baseBulletX + 15, y: player.y - bulletHeight, ...bulletDetails });
+            } else if (multiShotCount === 4) {
+                bullets.push({ x: baseBulletX - 20, y: player.y - bulletHeight, ...bulletDetails });
+                bullets.push({ x: baseBulletX - 7, y: player.y - bulletHeight, ...bulletDetails });
+                bullets.push({ x: baseBulletX + 7, y: player.y - bulletHeight, ...bulletDetails });
+                bullets.push({ x: baseBulletX + 20, y: player.y - bulletHeight, ...bulletDetails });
+            }
+        }
+
+        // Function to draw player bullets
+        function drawBullets() {
+            bullets.forEach(bullet => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+        }
+
+        // Function to update player bullet positions and remove out-of-bounds bullets
+        function updateBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].y -= bulletSpeed;
+                if (bullets[i].y < 0) {
+                    bullets.splice(i, 1); // Remove bullet if it goes off-screen
+                }
+            }
+        }
+
+        // Function to create a new enemy
+        function spawnEnemy(type = 'NORMAL', speedMultiplier = 1) {
+            const enemyProps = enemyTypes[type];
+            enemies.push({
+                x: Math.random() * (CANVAS_WIDTH - enemyWidth),
+                y: 0, // Start at the top
+                width: enemyWidth,
+                height: enemyHeight,
+                color: enemyProps.color,
+                type: type,
+                health: enemyProps.health,
+                canShoot: enemyProps.canShoot,
+                shootCooldown: enemyProps.shootCooldown, // Add shootCooldown property
+                lastShotTime: Date.now(), // For shooter enemies
+                speed: enemyProps.speed * speedMultiplier || enemySpeed * speedMultiplier // Use enemy type specific speed or general speed
+            });
+            enemiesSpawnedInLevel++;
+        }
+
+        // Function to summon minions for the boss
+        function spawnBossMinions(numMinions, minionType = 'BOSS_MINION') {
+            gameMessage.textContent = 'The Boss summons allies!';
+            gameMessage.style.display = 'block';
+            gameMessage.classList.add('small-text'); // Smaller message for in-game
+            setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 1500);
+
+            for (let i = 0; i < numMinions; i++) {
+                // Spawn minions near the boss, slightly offset
+                const minionX = boss.x + boss.width / (numMinions + 1) * (i + 1) - enemyWidth / 2;
+                const minionY = boss.y + boss.height + 10; // Spawn slightly below boss
+                const enemyProps = enemyTypes[minionType];
+
+                enemies.push({
+                    x: minionX,
+                    y: minionY,
+                    width: enemyWidth,
+                    height: enemyHeight,
+                    color: enemyProps.color,
+                    type: minionType,
+                    health: enemyProps.health,
+                    canShoot: enemyProps.canShoot,
+                    shootCooldown: enemyProps.shootCooldown,
+                    lastShotTime: Date.now() + i * 200, // Stagger their first shots
+                    speed: enemyProps.speed
+                });
+            }
+        }
+
+
+        // Function to draw enemies
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                // Optionally draw health bar for heavy/boss minions
+                if ((enemy.type === 'HEAVY' || enemy.type === 'BOSS_MINION') && enemy.health > 0) {
+                    ctx.fillStyle = 'red';
+                    const healthBarWidth = enemy.width * (enemy.health / enemyTypes[enemy.type].health);
+                    ctx.fillRect(enemy.x, enemy.y - 5, healthBarWidth, 3);
+                }
+            });
+        }
+
+        // Function to update enemy positions and remove out-of-bounds enemies
+        function updateEnemies() {
+            const currentTime = Date.now();
+
+            // Handle enemy spawning based on mode
+            if (gameMode === 'level') {
+                if (!levelIsBossFight) { // Only spawn enemies if it's not a boss level
+                    if (enemiesSpawnedInLevel < maxEnemiesToSpawnForLevel &&
+                        (currentTime - lastEnemySpawnTime > enemySpawnInterval)) {
+                        spawnEnemy();
+                        lastEnemySpawnTime = currentTime;
+                    } else if (enemiesSpawnedInLevel >= maxEnemiesToSpawnForLevel && enemies.length === 0 && !levelCompletionHandled) {
+                        // All enemies spawned and cleared in regular level mode
+                        handleLevelCompletion();
+                    }
+                }
+                // If levelIsBossFight is true, this section does nothing regarding spawning or level completion
+                // The boss spawn and completion is handled separately
+            } else { // Endless mode
+                if (!boss.exists) { // Don't spawn regular enemies if boss is active in endless mode
+                    // Dynamic spawn interval for endless mode difficulty scaling
+                    let currentSpawnInterval = Math.max(200, 1000 - (playerPounds / 10)); // Faster spawns as P$ increases, min 200ms
+                    if (currentTime - lastEnemySpawnTime > currentSpawnInterval) {
+                        spawnEnemy();
+                        lastEnemySpawnTime = currentTime;
+                    }
+                }
+            }
+
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                // Use enemy's own speed property if it has one, otherwise use global or level speed
+                enemy.y += enemy.speed || (gameMode === 'level' ? levels[currentLevelIndex].enemySpeed : enemySpeed);
+
+                // Shooter enemy logic (for all enemy types that can shoot, including BOSS_MINION)
+                if (enemy.canShoot && currentTime - enemy.lastShotTime > enemy.shootCooldown) {
+                    shootEnemyBullet(enemy);
+                    enemy.lastShotTime = currentTime;
+                }
+
+                if (enemy.y > CANVAS_HEIGHT) {
+                    enemies.splice(i, 1); // Remove enemy if it goes off-screen (missed)
+                    // Only lose health if a non-boss enemy escapes OR it's endless mode
+                    // Minions escaping in boss level should also cost health
+                    if (!boss.exists || gameMode === 'endless' || enemy.type === 'BOSS_MINION') {
+                        playerHealth--;
+                        updateHealthDisplay();
+                        hitSynth.triggerAttackRelease("C2", "8n"); // Player hit sound
+                        if (playerHealth <= 0) {
+                            createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50); // Player death particles
+                            endGame('Game Over! You ran out of health.');
+                        }
+                    }
+                }
+            }
+        }
+
+        // Function for enemy to shoot a bullet (can be used by boss too)
+        function shootEnemyBullet(shooter, bulletDirectionY = 1, bulletSpeedOverride = enemyBulletSpeed, targetPlayer = false) {
+            let vx = 0;
+            let vy = bulletDirectionY * bulletSpeedOverride;
+
+            if (targetPlayer) {
+                const targetX = player.x + player.width / 2;
+                const targetY = player.y + player.height / 2;
+                const dx = targetX - (shooter.x + shooter.width / 2);
+                const dy = targetY - (shooter.y + shooter.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > 0) {
+                    vx = (dx / distance) * bulletSpeedOverride;
+                    vy = (dy / distance) * bulletSpeedOverride;
+                }
+            }
+
+
+            enemyBullets.push({
+                x: shooter.x + shooter.width / 2 - enemyBulletWidth / 2,
+                y: shooter.y + (bulletDirectionY > 0 ? shooter.height : -enemyBulletHeight),
+                width: enemyBulletWidth,
+                height: enemyBulletHeight,
+                color: enemyBulletColor,
+                vx: vx,
+                vy: vy
+            });
+        }
+
+        // Function to draw enemy bullets
+        function drawEnemyBullets() {
+            enemyBullets.forEach(bullet => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+        }
+
+        // Function to update enemy bullet positions and remove out-of-bounds
+        function updateEnemyBullets() {
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                const bullet = enemyBullets[i];
+                bullet.x += bullet.vx || 0; // Use vx if defined, otherwise 0
+                bullet.y += bullet.vy || enemyBulletSpeed; // Use vy if defined, otherwise default enemy bullet speed
+                if (bullet.y > CANVAS_HEIGHT || bullet.y < 0 || bullet.x < 0 || bullet.x > CANVAS_WIDTH) {
+                    enemyBullets.splice(i, 1);
+                }
+            }
+        }
+
+        // Function to spawn the boss
+        function spawnBoss() {
+            if (!boss.exists) {
+                boss.exists = true;
+                const bossSpecs = levels[currentLevelIndex].bossSpecifics;
+
+                boss.maxHealth = bossSpecs.health;
+                boss.speed = bossSpecs.movementSpeed;
+                boss.shootCooldownSpread = bossSpecs.spreadShotInterval;
+                boss.shootCooldownTracking = bossSpecs.trackingShotInterval;
+                boss.bulletSpeedOverride = bossSpecs.bulletSpeed;
+                boss.width = 100;
+                boss.height = 100;
+                boss.minionsToSummon = bossSpecs.minionsToSummon || 0;
+                boss.minionSummonThresholds = bossSpecs.minionSummonThresholds || []; // Array of health % to summon at
+                boss.summonedMinionsAtThreshold = new Array(boss.minionSummonThresholds.length).fill(false); // Track each threshold
+
+                boss.health = boss.maxHealth;
+                boss.x = CANVAS_WIDTH / 2 - boss.width / 2;
+                boss.y = 50;
+                boss.direction = Math.random() < 0.5 ? 1 : -1;
+                boss.lastShotTimeSpread = Date.now();
+                boss.lastShotTimeTracking = Date.now();
+
+                bossHealthContainer.style.display = 'block';
+                updateBossHealthDisplay();
+                gameMessage.textContent = `BOSS ALERT! ${levels[currentLevelIndex].name}!`;
+                gameMessage.style.display = 'block';
+                gameMessage.classList.remove('small-text');
+                setTimeout(() => {
+                    if(gameRunning) {
+                        gameMessage.style.display = 'none';
+                    }
+                }, 2000);
+            }
+        }
+
+        // Function to draw the boss
+        function drawBoss() {
+            if (boss.exists) {
+                ctx.fillStyle = boss.color;
+                ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+            }
+        }
+
+        // Function to update boss position and actions
+        function updateBoss() {
+            if (boss.exists) {
+                // Movement
+                boss.x += boss.speed * boss.direction;
+                if (boss.x <= 0 || boss.x >= CANVAS_WIDTH - boss.width) {
+                    boss.direction *= -1; // Reverse direction
+                }
+
+                const currentTime = Date.now();
+
+                // Attack Pattern 1: Spread Shot
+                if (currentTime - boss.lastShotTimeSpread > boss.shootCooldownSpread) {
+                    const numBullets = 3;
+                    const spreadAngleDegrees = 20;
+                    const startAngleDegrees = -spreadAngleDegrees / 2;
+
+                    for (let i = 0; i < numBullets; i++) {
+                        const angleDegrees = startAngleDegrees + (spreadAngleDegrees / (numBullets - 1)) * i;
+                        const angleRadians = angleDegrees * (Math.PI / 180) + Math.PI / 2;
+
+                        const vx = Math.cos(angleRadians) * boss.bulletSpeedOverride;
+                        const vy = Math.sin(angleRadians) * boss.bulletSpeedOverride;
+
+                        enemyBullets.push({
+                            x: boss.x + boss.width / 2 - enemyBulletWidth / 2,
+                            y: boss.y + boss.height,
+                            width: enemyBulletWidth,
+                            height: enemyBulletHeight,
+                            color: enemyBulletColor,
+                            vx: vx,
+                            vy: vy
+                        });
+                    }
+                    boss.lastShotTimeSpread = currentTime;
+                }
+
+                // Attack Pattern 2: Tracking Shot (less frequent)
+                if (currentTime - boss.lastShotTimeTracking > boss.shootCooldownTracking) {
+                    shootEnemyBullet(boss, 1, boss.bulletSpeedOverride * 1.5, true);
+                    boss.lastShotTimeTracking = currentTime;
+                }
+
+                // Minion Summoning based on thresholds
+                if (gameMode === 'level' && levelIsBossFight && boss.minionSummonThresholds.length > 0) {
+                    const currentHealthPercentage = boss.health / boss.maxHealth;
+                    boss.minionSummonThresholds.forEach((threshold, index) => {
+                        if (currentHealthPercentage <= threshold && !boss.summonedMinionsAtThreshold[index]) {
+                            spawnBossMinions(boss.minionsToSummon);
+                            boss.summonedMinionsAtThreshold[index] = true; // Mark as summoned for this threshold
+                        }
+                    });
+                }
+            }
+        }
+
+        // Update boss health bar
+        function updateBossHealthDisplay() {
+            if (boss.exists) {
+                const healthPercentage = (boss.health / boss.maxHealth) * 100;
+                bossHealthBar.style.width = `${healthPercentage}%`;
+            }
+        }
+
+        // Function to create a bonus
+        function createBonus(x, y) {
+            if (Math.random() < enemyDropBonusChance) {
+                const types = Object.keys(bonusTypes);
+                const randomType = types[Math.floor(Math.random() * types.length)];
+                bonuses.push({
+                    x: x,
+                    y: y,
+                    width: bonusWidth,
+                    height: bonusHeight,
+                    type: randomType,
+                    color: bonusTypes[randomType].color,
+                    label: bonusTypes[randomType].label
+                });
+            }
+        }
+
+        // Function to draw bonuses
+        function drawBonuses() {
+            bonuses.forEach(bonus => {
+                ctx.fillStyle = bonus.color;
+                ctx.fillRect(bonus.x, bonus.y, bonus.width, bonus.height);
+                ctx.fillStyle = '#ffffff'; // White text for bonus label
+                ctx.font = '12px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(bonus.label, bonus.x + bonus.width / 2, bonus.y + bonus.height / 2);
+            });
+        }
+
+        // Function to update bonus positions
+        function updateBonuses() {
+            for (let i = bonuses.length - 1; i >= 0; i--) {
+                bonuses[i].y += bonusSpeed;
+                if (bonuses[i].y > CANVAS_HEIGHT) {
+                    bonuses.splice(i, 1); // Remove bonus if it goes off-screen
+                }
+            }
+        }
+
+        // Function to apply bonus effects
+        function applyBonusEffect(bonusType) {
+            const currentTime = Date.now();
+            switch (bonusType) {
+                case 'HEALTH':
+                    // Health boost can exceed max health temporarily
+                    playerHealth = Math.min(playerHealth + 1, playerMaxHealth + 2); // Cap temporary over-health
+                    updateHealthDisplay();
+                    gameMessage.textContent = 'Health Boost!';
+                    gameMessage.style.display = 'block';
+                    gameMessage.classList.remove('small-text');
+                    setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 1000);
+                    break;
+                case 'COOLDOWN':
+                    currentShootCooldown = reducedCooldown;
+                    cooldownEffectEndTime = currentTime + cooldownReductionDuration;
+                    gameMessage.textContent = 'Rapid Fire!';
+                    gameMessage.style.display = 'block';
+                    gameMessage.classList.remove('small-text');
+                    setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 1000);
+                    break;
+                case 'MULTISHOT':
+                    multiShotCount = multiShotCount < 4 ? multiShotCount + 1 : 4; // Increase multi-shot up to 4
+                    multiShotEffectEndTime = currentTime + multiShotDuration;
+                    gameMessage.textContent = `${multiShotCount}x Shot!`;
+                    gameMessage.style.display = 'block';
+                    gameMessage.classList.remove('small-text');
+                    setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 1000);
+                    break;
+            }
+        }
+
+        // Function to check and expire power-up effects
+        function checkPowerUpExpirations() {
+            const currentTime = Date.now();
+            if (multiShotEffectEndTime > 0 && currentTime > multiShotEffectEndTime) {
+                multiShotCount = 1;
+                multiShotEffectEndTime = 0;
+                gameMessage.textContent = 'Multi-shot expired!';
+                gameMessage.style.display = 'block';
+                gameMessage.classList.remove('small-text');
+                setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 1000);
+            }
+            if (cooldownEffectEndTime > 0 && currentTime > cooldownEffectEndTime) {
+                currentShootCooldown = initialShootCooldown;
+                cooldownEffectEndTime = 0;
+                gameMessage.textContent = 'Rapid Fire expired!';
+                gameMessage.style.display = 'block';
+                gameMessage.classList.remove('small-text');
+                setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 1000);
+            }
+        }
+
+        // Basic collision detection function (AABB)
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        // Function to handle collisions between bullets/enemies and player/bonuses
+        function handleCollisions() {
+            // Player bullet-Enemy collisions
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                // Check against normal enemies
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const enemy = enemies[j];
+                    if (checkCollision(bullet, enemy)) {
+                        bullets.splice(i, 1); // Remove player bullet
+                        enemy.health -= bullet.damage; // Apply bullet damage
+                        hitSynth.triggerAttackRelease("G4", "16n"); // Enemy hit sound
+                        if (enemy.health <= 0) {
+                            createBonus(enemy.x, enemy.y); // Try to create a bonus
+                            createExplosionParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color, 20); // Enemy death particles
+                            enemies.splice(j, 1); // Remove enemy
+                            playerPounds += enemyTypes[enemy.type].value; // Add P$
+                            explosionSynth.triggerAttackRelease("0.5", "8n"); // Explosion sound
+                            updatePlayerPoundsDisplay();
+                        }
+                        break; // Break inner loop as bullet is removed
+                    }
+                }
+                // Check against boss if exists
+                if (boss.exists && checkCollision(bullet, boss)) {
+                    bullets.splice(i, 1); // Remove player bullet
+                    boss.health -= bullet.damage; // Apply bullet damage
+                    hitSynth.triggerAttackRelease("A4", "16n"); // Boss hit sound
+                    updateBossHealthDisplay();
+                    if (boss.health <= 0) {
+                        // Boss defeated!
+                        explosionSynth.triggerAttackRelease("1", "4n"); // Big explosion sound
+                        createExplosionParticles(boss.x + boss.width / 2, boss.y + boss.height / 2, boss.color, 100); // Boss death particles
+
+                        playerPounds += 500; // Bonus P$ for defeating any boss
+                        updatePlayerPoundsDisplay();
+
+                        if (gameMode === 'endless') {
+                            gameMessage.textContent = 'BOSS DEFEATED! SPEED UPGRADE!';
+                            gameMessage.style.display = 'block';
+                            gameMessage.classList.remove('small-text');
+                            setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 3000);
+                            player.currentSpeed += 1; // Permanent speed increase in endless
+                            player.baseSpeed += 1;
+                            bossSpawnScoreThreshold += 500; // Increase threshold for next endless boss
+                        } else if (gameMode === 'level' && levelIsBossFight) {
+                            // If this is the last level, game won!
+                            if (currentLevelIndex === levels.length - 1) {
+                                // No next level button, show game won message
+                            } else {
+                                // Unlock the next level
+                                currentLevelIndex++; // Advance the current level index, which unlocks it
+                            }
+                            completedLevels.add(currentLevelIndex - 1); // Mark the *just completed* level as complete
+                            handleLevelCompletion(); // Handle completion of boss level
+                        }
+                        boss.exists = false;
+                        bossHealthContainer.style.display = 'none';
+                    }
+                    break; // Break loop as bullet is removed
+                }
+            }
+
+            // Player-Enemy collisions
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                if (checkCollision(player, enemies[i])) {
+                    enemies.splice(i, 1); // Remove enemy that hit player
+                    playerHealth--; // Player loses health
+                    updateHealthDisplay();
+                    hitSynth.triggerAttackRelease("C2", "8n"); // Player hit sound
+                    explosionSynth.triggerAttackRelease("0.5", "8n"); // Explosion sound
+                    if (playerHealth <= 0) {
+                        createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50); // Player death particles
+                        endGame('Game Over! You were hit!');
+                    }
+                    // No break here, allow player to be hit by multiple enemies if overlapping
+                }
+            }
+
+            // Player-Enemy bullet collisions
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                const enemyBullet = enemyBullets[i];
+                if (checkCollision(player, enemyBullet)) {
+                    enemyBullets.splice(i, 1); // Remove enemy bullet
+                    playerHealth--; // Player loses health
+                    updateHealthDisplay();
+                    hitSynth.triggerAttackRelease("C2", "8n"); // Player hit sound
+                    if (playerHealth <= 0) {
+                        createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50); // Player death particles
+                        endGame('Game Over! You were hit!');
+                    }
+                    break; // Only hit by one bullet at a time
+                }
+            }
+
+
+            // Player-Bonus collisions
+            for (let i = bonuses.length - 1; i >= 0; i--) {
+                if (checkCollision(player, bonuses[i])) {
+                    applyBonusEffect(bonuses[i].type);
+                    bonuses.splice(i, 1); // Remove collected bonus
+                    break; // Break loop as bonus is collected
+                }
+            }
+        }
+
+        // Particle class (or object structure)
+        function Particle(x, y, size, color, vx, vy, lifetime) {
+            this.x = x;
+            this.y = y;
+            this.size = size;
+            this.color = color;
+            this.vx = vx;
+            this.vy = vy;
+            this.alpha = 1; // Initial opacity
+            this.lifetime = lifetime; // How long particle lives (in frames or ms)
+            this.life = lifetime; // Current life
+        }
+
+        // Function to create explosion particles
+        function createExplosionParticles(x, y, baseColor, count) {
+            for (let i = 0; i < count; i++) {
+                // Randomize velocity for explosion effect
+                const angle = Math.random() * Math.PI * 2; // Full circle
+                const speed = Math.random() * 3 + 1; // Random speed from 1 to 4
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed;
+
+                // Randomize size and lifetime
+                const size = Math.random() * 4 + 1; // Size from 1 to 5
+                const lifetime = Math.random() * 60 + 30; // Lifetime from 30 to 90 frames
+
+                // Slightly vary color for explosion effect
+                const r = parseInt(baseColor.substring(1, 3), 16);
+                const g = parseInt(baseColor.substring(3, 5), 16);
+                const b = parseInt(baseColor.substring(5, 7), 16);
+                const colorVariation = 30;
+                const newR = Math.min(255, Math.max(0, r + (Math.random() - 0.5) * colorVariation));
+                const newG = Math.min(255, Math.max(0, g + (Math.random() - 0.5) * colorVariation));
+                const newB = Math.min(255, Math.max(0, b + (Math.random() - 0.5) * colorVariation));
+                const finalColor = `rgb(${newR}, ${newG}, ${newB})`;
+
+                particles.push(new Particle(x, y, size, finalColor, vx, vy, lifetime));
+            }
+        }
+
+        // Function to update particles
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += particleGravity; // Apply gravity
+
+                p.life--;
+                p.alpha = p.life / p.lifetime; // Fade out
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1); // Remove dead particle
+                }
+            }
+        }
+
+        // Function to draw particles
+        function drawParticles() {
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                ctx.save(); // Save current canvas state
+                ctx.globalAlpha = p.alpha; // Apply alpha for fading
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); // Draw particle as square
+                ctx.restore(); // Restore canvas state
+            }
+        }
+
+        // Function to update P$ display
+        function updatePlayerPoundsDisplay() {
+            playerPoundsDisplay.textContent = `P$: ${playerPounds}`;
+        }
+
+        // Function to update health display
+        function updateHealthDisplay() {
+            healthDisplay.textContent = `Health: ${playerHealth}`;
+        }
+
+        // Function to update level display
+        function updateLevelDisplay() {
+            levelDisplay.textContent = `Level: ${currentLevelIndex + 1}`;
+        }
+
+        // Function to update the level map visually / for selection
+        function updateLevelMap(enableClicks = false) {
+            levelMapContainer.innerHTML = ''; // Clear existing nodes
+            if (gameMode !== 'level' && !enableClicks) { // Only show map if in level mode (or explicitly asked for clicks)
+                levelMapContainer.style.display = 'none';
+                return;
+            }
+            levelMapContainer.style.display = 'flex'; // Ensure it's visible if needed
+
+            levels.forEach((level, index) => {
+                const levelNode = document.createElement('div');
+                levelNode.classList.add('level-node');
+                levelNode.textContent = index + 1; // Level number (1-indexed)
+
+                let isClickable = false;
+
+                // Level is clickable if it's the current "unlocked" level or a previously completed level
+                if (index === currentLevelIndex || completedLevels.has(index)) {
+                    isClickable = true;
+                }
+
+                if (completedLevels.has(index)) {
+                    levelNode.classList.add('completed');
+                }
+                // When in level select, only highlight if current and completed.
+                // During gameplay, highlight the actual current level.
+                if (index === currentLevelIndex && (gameMode === 'level' && !enableClicks)) {
+                    levelNode.classList.add('current');
+                } else if (index === currentLevelIndex && enableClicks) { // Highlight current in level select
+                     levelNode.classList.add('current');
+                }
+
+
+                if (enableClicks && isClickable) {
+                    levelNode.addEventListener('click', () => {
+                        loadLevel(index);
+                    });
+                } else {
+                    levelNode.classList.add('locked'); // Apply locked style
+                }
+                levelMapContainer.appendChild(levelNode);
+            });
+        }
+
+        // Function to populate and manage the shop UI
+        function populateShop() {
+            shopItemsContainer.innerHTML = ''; // Clear existing items
+
+            shopItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('shop-item');
+
+                const maxedOut = item.currentPurchases >= item.maxPurchases;
+                const canAfford = playerPounds >= item.cost;
+
+                itemDiv.innerHTML = `
+                    <h3>${item.name}</h3>
+                    <p>${item.description}</p>
+                    <p class="cost">Cost: P$${item.cost}</p>
+                    <p>Purchased: ${item.currentPurchases}/${item.maxPurchases}</p>
+                    <button id="buy-${item.id}" ${(!canAfford || maxedOut) ? 'disabled' : ''}>
+                        ${maxedOut ? 'MAXED' : (canAfford ? 'BUY' : 'NEED P$')}
+                    </button>
+                `;
+                shopItemsContainer.appendChild(itemDiv);
+
+                const buyButton = itemDiv.querySelector(`#buy-${item.id}`);
+                if (buyButton) {
+                    buyButton.addEventListener('click', () => purchaseItem(item.id));
+                }
+            });
+        }
+
+        // Function to handle purchasing items
+        function purchaseItem(itemId) {
+            const item = shopItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            if (playerPounds >= item.cost && item.currentPurchases < item.maxPurchases) {
+                playerPounds -= item.cost;
+                item.effect(); // Apply the item's effect
+                item.currentPurchases++;
+                updatePlayerPoundsDisplay();
+                populateShop(); // Refresh shop display
+                gameMessage.textContent = `${item.name} Purchased!`;
+                gameMessage.style.display = 'block';
+                gameMessage.classList.add('small-text');
+                setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 1000);
+            } else if (item.currentPurchases >= item.maxPurchases) {
+                gameMessage.textContent = `${item.name} is Maxed Out!`;
+                gameMessage.style.display = 'block';
+                gameMessage.classList.add('small-text');
+                setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 1000);
+            } else {
+                gameMessage.textContent = `Not enough P$ for ${item.name}!`;
+                gameMessage.style.display = 'block';
+                gameMessage.classList.add('small-text');
+                setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 1000);
+            }
+        }
+
+
+        // Function to clear the canvas
+        function clearCanvas() {
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (!gameRunning) return; // Stop loop if game is not running
+
+            clearCanvas();
+            updatePlayer();
+            updateBullets();
+            updateEnemies();
+            updateEnemyBullets(); // Update enemy bullets
+            updateBonuses();
+            updateBoss(); // Update boss
+            handleCollisions();
+            checkPowerUpExpirations(); // Check for power-up expiry
+            updateParticles(); // Update particles
+
+            drawPlayer();
+            drawBullets();
+            drawEnemies();
+            drawEnemyBullets(); // Draw enemy bullets
+            drawBonuses();
+            drawBoss(); // Draw boss
+            drawParticles(); // Draw particles
+
+            // Check for boss spawn in Endless Mode
+            if (gameMode === 'endless' && !boss.exists && playerPounds >= bossSpawnScoreThreshold) {
+                spawnBoss();
+            }
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // Function to initialize game state for a new game (or level)
+        function resetGameState() {
+            // playerPounds persists in level mode, so don't reset unless new game mode selected
+            bullets.length = 0;
+            enemies.length = 0;
+            enemyBullets.length = 0;
+            bonuses.length = 0;
+            particles.length = 0;
+
+            player.x = CANVAS_WIDTH / 2 - 20;
+            // player.currentSpeed and player.bulletDamage are managed by shop upgrades
+            // Reapply base speeds, these get boosted by shop items
+            player.currentSpeed = player.baseSpeed;
+
+            // Reset temporary power-ups
+            lastEnemySpawnTime = Date.now();
+            currentShootCooldown = initialShootCooldown;
+            multiShotCount = 1;
+            multiShotEffectEndTime = 0;
+            cooldownEffectEndTime = 0;
+
+            // Reset boss state completely
+            boss.exists = false;
+            boss.health = 0;
+            boss.maxHealth = 0;
+            boss.x = 0;
+            boss.y = 50;
+            boss.direction = 1;
+            boss.lastShotTimeSpread = 0;
+            boss.lastShotTimeTracking = 0;
+            boss.minionSummonThresholds = []; // Clear for reset
+            boss.summonedMinionsAtThreshold = []; // Clear summon flags for boss
+
+            bossSpawnScoreThreshold = 500; // Reset for endless mode (if it gets restarted)
+
+            enemiesKilledThisLevel = 0;
+            enemiesSpawnedInLevel = 0;
+            maxEnemiesToSpawnForLevel = 0;
+            levelIsBossFight = false;
+            levelCompletionHandled = false; // Important flag reset for level mode
+
+            updatePlayerPoundsDisplay();
+            updateHealthDisplay();
+            // updateLevelMap() called separately based on UI state
+        }
+
+        // --- UI State Management ---
+        function showUIState(state) {
+            // Hide all potential elements first
+            mainMenuButtons.style.display = 'none';
+            inGameButtons.style.display = 'none';
+            shopScreen.style.display = 'none';
+            canvas.style.display = 'none'; // Hide canvas when not in game
+            levelDisplay.style.display = 'none';
+            bossHealthContainer.style.display = 'none';
+            gameMessage.style.display = 'none';
+            instructionsText.style.display = 'none';
+            levelMapContainer.style.display = 'none';
+
+            nextLevelBtn.style.display = 'none';
+            resetGameBtn.style.display = 'none';
+            returnToMenuBtn.style.display = 'none';
+
+            // Then show based on the requested state
+            switch (state) {
+                case 'mainMenu':
+                    mainMenuButtons.style.display = 'flex';
+                    gameMessage.textContent = 'Choose your game mode!';
+                    gameMessage.style.display = 'block';
+                    gameMessage.classList.remove('small-text');
+                    instructionsText.style.display = 'block';
+                    break;
+                case 'levelSelect':
+                    levelMapContainer.style.display = 'flex';
+                    updateLevelMap(true); // Populate and enable clicks
+                    gameMessage.textContent = 'Select a Level:';
+                    gameMessage.style.display = 'block';
+                    gameMessage.classList.remove('small-text');
+                    returnToMenuBtn.style.display = 'block';
+                    inGameButtons.style.display = 'flex';
+                    break;
+                case 'inGame':
+                    canvas.style.display = 'block'; // Show canvas
+                    inGameButtons.style.display = 'flex';
+                    resetGameBtn.style.display = 'block'; // To restart current level/mode
+                    returnToMenuBtn.style.display = 'block';
+                    if (gameMode === 'level') {
+                        levelDisplay.style.display = 'block';
+                        levelMapContainer.style.display = 'flex';
+                        updateLevelMap(false); // Display map without clicks
+                    }
+                    break;
+                case 'levelComplete':
+                    canvas.style.display = 'block'; // Keep canvas visible briefly
+                    inGameButtons.style.display = 'flex';
+                    if (currentLevelIndex + 1 < levels.length) { // Check against total levels, not just current one
+                        nextLevelBtn.style.display = 'block';
+                    }
+                    resetGameBtn.style.display = 'block';
+                    returnToMenuBtn.style.display = 'block';
+                    levelDisplay.style.display = 'block';
+                    levelMapContainer.style.display = 'flex';
+                    updateLevelMap(false);
+                    break;
+                case 'gameOver':
+                    canvas.style.display = 'block'; // Keep canvas visible briefly
+                    inGameButtons.style.display = 'flex';
+                    resetGameBtn.style.display = 'block';
+                    returnToMenuBtn.style.display = 'block';
+                    gameMessage.style.display = 'block';
+                    gameMessage.classList.remove('small-text');
+                    if (gameMode === 'level') {
+                        levelDisplay.style.display = 'block';
+                        levelMapContainer.style.display = 'flex';
+                        updateLevelMap(false);
+                    }
+                    break;
+                case 'shop':
+                    shopScreen.style.display = 'flex';
+                    populateShop(); // Update shop items
+                    playerPoundsDisplay.style.display = 'block'; // Ensure P$ is visible in shop
+                    break;
+            }
+        }
+
+
+        // --- Game Mode Specific Functions ---
+
+        function showMainMenu() {
+            gameRunning = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            resetGameState(); // Resets game entities etc.
+            playerHealth = playerMaxHealth; // Reset player health to max health
+            updateHealthDisplay();
+            player.currentSpeed = player.baseSpeed; // Reset player speed to base
+            player.bulletDamage = 1; // Reset bullet damage
+            playerPounds = 0; // Reset P$
+            updatePlayerPoundsDisplay();
+            shopItems.forEach(item => item.currentPurchases = 0); // Reset shop purchases
+            completedLevels.clear(); // Clear completed levels on returning to main menu
+            currentLevelIndex = 0; // Reset starting level to 0 (Level 1)
+            showUIState('mainMenu');
+            clearCanvas(); // Clear anything drawn on canvas
+        }
+
+        function setupLevelMode() {
+            gameMode = 'level';
+            // P$ and upgrades persist across levels in level mode
+            // Only reset player health to max at start of level mode campaign
+            playerHealth = playerMaxHealth;
+            updateHealthDisplay();
+            showUIState('levelSelect');
+            clearCanvas();
+        }
+
+        function setupEndlessMode() {
+            gameMode = 'endless';
+            // Reset ALL game state for a new endless run
+            resetGameState();
+            playerHealth = playerMaxHealth;
+            updateHealthDisplay();
+            player.currentSpeed = player.baseSpeed;
+            player.bulletDamage = 1;
+            playerPounds = 0;
+            updatePlayerPoundsDisplay();
+            shopItems.forEach(item => item.currentPurchases = 0); // Reset shop purchases
+            bossSpawnScoreThreshold = 500; // Reset for endless mode start
+            startGameInMode(); // Start endless mode directly
+        }
+
+        function startGameInMode() {
+            // This function primarily handles setting up UI and starting the loop
+            // `resetGameState()` is called by `loadLevel` or `setupEndlessMode` for actual entity resets.
+            showUIState('inGame');
+
+            if (gameMode === 'level') {
+                // loadLevel is responsible for starting gameLoop
+            } else { // Endless mode
+                gameMessage.textContent = 'Endless Mode: Survive and get high P$!';
+                gameMessage.style.display = 'block';
+                gameMessage.classList.remove('small-text');
+                setTimeout(() => { if(gameRunning) gameMessage.style.display = 'none'; }, 2000);
+                gameRunning = true;
+                Tone.start();
+                gameLoop();
+            }
+        }
+
+        function loadLevel(levelIdx) {
+            gameRunning = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            clearCanvas();
+            resetGameState(); // Resets everything but player's permanent stats (P$, health, speed, damage, shop purchases)
+            
+            // Ensure player health doesn't exceed new max health if health powerup was applied
+            playerHealth = Math.min(playerHealth, playerMaxHealth);
+            updateHealthDisplay();
+
+            currentLevelIndex = levelIdx; // Set the current level to the selected index
+            const levelConfig = levels[currentLevelIndex];
+            updateLevelDisplay();
+            updateLevelMap(false); // Display map without clicks during gameplay
+
+            enemySpawnInterval = levelConfig.enemySpawnInterval;
+            maxEnemiesToSpawnForLevel = levelConfig.enemyCount;
+            levelIsBossFight = levelConfig.bossLevel;
+
+            showUIState('inGame');
+
+            gameMessage.classList.remove('small-text');
+            if (levelConfig.message) {
+                gameMessage.textContent = levelConfig.message;
+                if (levelConfig.message.length > 50) gameMessage.classList.add('small-text');
+                gameMessage.style.display = 'block';
+                setTimeout(() => {
+                    if(gameRunning) {
+                        gameMessage.style.display = 'none';
+                    }
+                }, Math.min(4000, levelConfig.message.length * 50 + 1000));
+            } else {
+                gameMessage.textContent = `Level ${currentLevelIndex + 1}: ${levelConfig.name}`;
+                gameMessage.style.display = 'block';
+                setTimeout(() => {
+                    if(gameRunning) {
+                        gameMessage.style.display = 'none';
+                    }
+                }, 1500);
+            }
+
+            if (levelIsBossFight) {
+                setTimeout(() => {
+                    if (gameRunning) spawnBoss();
+                }, 1000);
+            }
+
+            gameRunning = true;
+            Tone.start();
+            gameLoop();
+        }
+
+        function handleLevelCompletion() {
+            if (levelCompletionHandled) return;
+            levelCompletionHandled = true;
+
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            clearCanvas();
+
+            completedLevels.add(currentLevelIndex); // Mark this level as completed
+            
+            // Only advance currentLevelIndex if not the last level and playing sequentially
+            if (currentLevelIndex < levels.length - 1) {
+                 // The actual `currentLevelIndex` (highest unlocked) is updated when a level is completed,
+                 // or when returning to level select. This makes the *next* level selectable.
+                 // We don't increment it *here* because it's handled implicitly by `currentLevelIndex`
+                 // being the highest reached, and `nextLevelBtn` or `loadLevel` will use it.
+            }
+
+            showUIState('levelComplete');
+            updateLevelMap(false);
+
+            if (currentLevelIndex + 1 < levels.length) {
+                gameMessage.textContent = `Level ${currentLevelIndex + 1} Complete! Get Ready for Level ${currentLevelIndex + 2}!`;
+                gameMessage.classList.remove('small-text');
+            } else {
+                gameMessage.textContent = 'Congratulations! You completed all levels! Game Won!';
+                gameMessage.classList.remove('small-text');
+                nextLevelBtn.style.display = 'none'; // No next level button if all levels are done
+            }
+            gameMessage.style.display = 'block';
+        }
+
+        // Function to end the game (from player death or overall game win)
+        function endGame(message) {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            showUIState('gameOver');
+            gameMessage.textContent = message;
+            gameMessage.style.display = 'block';
+            gameMessage.classList.remove('small-text');
+        }
+
+        // --- Event Listeners for UI Buttons ---
+        levelModeBtn.addEventListener('click', setupLevelMode);
+        endlessModeBtn.addEventListener('click', setupEndlessMode);
+        shopBtn.addEventListener('click', () => showUIState('shop'));
+        backToMenuFromShopBtn.addEventListener('click', showMainMenu); // Return from shop to main menu
+        nextLevelBtn.addEventListener('click', () => {
+            // When "Next Level" is clicked, we're already on a completed level, so proceed to the next index
+            // currentLevelIndex was already updated in handleLevelCompletion
+            levelCompletionHandled = false;
+            loadLevel(currentLevelIndex + 1 > levels.length -1 ? currentLevelIndex : currentLevelIndex + 1); // Ensure we don't go past last level
+        });
+        resetGameBtn.addEventListener('click', () => {
+            if (gameMode === 'level') {
+                loadLevel(currentLevelIndex); // Reload current level
+            } else if (gameMode === 'endless') {
+                setupEndlessMode(); // Restart endless mode (which fully resets)
+            }
+        });
+        returnToMenuBtn.addEventListener('click', showMainMenu);
+
+
+        // Initial setup on window load
+        window.onload = () => {
+            currentLevelIndex = 0; // Ensure starts at Level 1 unlocked
+            showMainMenu();
+        };
+
+    </script>
+</body>
+</html>
