@@ -63,7 +63,15 @@
             font-size: 1.2em;
             color: #00f0ff;
             text-shadow: 0 0 5px #00f0ff;
+            flex-shrink: 0; /* Prevent items from shrinking */
+            white-space: nowrap; /* Keep text on single line */
+            margin: 0 5px; /* Add some margin between items */
         }
+
+        /* Adjust info items for better spacing */
+        .info-container > :first-child { margin-left: 0; }
+        .info-container > :last-child { margin-right: 0; }
+
 
         /* Boss health bar styling */
         #bossHealthContainer {
@@ -238,7 +246,7 @@
 
 
         /* Shop specific styling */
-        #shopScreen {
+        .shop-screen { /* Generic class for both shops */
             display: none;
             flex-direction: column;
             gap: 20px;
@@ -250,34 +258,35 @@
         }
 
         /* Shop items container itself is now scrollable */
-        #shopItemsContainer {
+        .shop-items-container { /* Generic class for both shop item containers */
             display: flex;
             flex-direction: column;
             gap: 15px;
             width: 100%;
-            max-height: 400px;
+            /* Increased max-height for better visibility */
+            max-height: 600px;
             overflow-y: auto;
             padding-right: 15px;
             box-sizing: border-box;
         }
 
         /* Customize scrollbar (Webkit browsers) */
-        #shopItemsContainer::-webkit-scrollbar {
+        .shop-items-container::-webkit-scrollbar {
             width: 8px;
         }
 
-        #shopItemsContainer::-webkit-scrollbar-track {
+        .shop-items-container::-webkit-scrollbar-track {
             background: #1a1a2e;
             border-radius: 10px;
         }
 
-        #shopItemsContainer::-webkit-scrollbar-thumb {
+        .shop-items-container::-webkit-scrollbar-thumb {
             background: #00f0ff;
             border-radius: 10px;
             border: 2px solid #1a1a2e;
         }
 
-        #shopItemsContainer::-webkit-scrollbar-thumb:hover {
+        .shop-items-container::-webkit-scrollbar-thumb:hover {
             background: #00c0ff;
         }
 
@@ -315,12 +324,44 @@
             font-weight: bold;
         }
 
+        .shop-item.epsilon .cost { /* Specific style for E$ costs */
+            color: #ff00ff; /* Purple/pink for E$ */
+        }
+
+        .shop-item .equip-status {
+            font-size: 0.9em;
+            color: #00ff77; /* Green for equipped */
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .shop-item .equip-status.not-equipped {
+            color: #aaa; /* Gray for not equipped */
+        }
+
         .shop-item button {
             width: 100%;
             margin-top: 10px;
             padding: 8px 15px;
             font-size: 0.9em;
         }
+        .shop-item button.equip-button {
+            background-color: #00774a;
+            border-color: #00ff77;
+        }
+        .shop-item button.equip-button:hover {
+            background-color: #00976a;
+            box-shadow: 0 5px 20px rgba(0, 255, 119, 0.6);
+        }
+        .shop-item button.equip-button:disabled {
+            background-color: #555;
+            border-color: #777;
+            cursor: default;
+            box-shadow: none;
+            transform: none;
+            opacity: 0.7;
+        }
+
 
         /* Responsive adjustments for smaller screens */
         @media (max-width: 600px) {
@@ -370,99 +411,12 @@
     </style>
     <!-- Tone.js library for sound effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
-
-    <!-- Firebase SDK (Version 11.6.1 is used as per guidelines) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Firebase variables - these will be global in this script
-        window.firebaseApp = null;
-        window.db = null;
-        window.auth = null;
-        window.userId = null;
-        window.isAuthReady = false;
-
-        // MANDATORY: Access global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // Initialize Firebase
-        if (Object.keys(firebaseConfig).length > 0) {
-            window.firebaseApp = initializeApp(firebaseConfig);
-            window.db = getFirestore(window.firebaseApp);
-            window.auth = getAuth(window.firebaseApp);
-
-            onAuthStateChanged(window.auth, async (user) => {
-                if (user) {
-                    window.userId = user.uid;
-                } else {
-                    if (!initialAuthToken) {
-                        try {
-                            const anonymousUser = await signInAnonymously(window.auth);
-                            window.userId = anonymousUser.user.uid;
-                        } catch (error) {
-                            console.error("Anonymous sign-in failed:", error);
-                            document.getElementById('gameMessage').textContent = 'Error: Could not sign in. Game progress will not be saved.';
-                            document.getElementById('gameMessage').style.display = 'block';
-                        }
-                    }
-                }
-                window.isAuthReady = true;
-                console.log("Firebase Auth Ready. User ID:", window.userId);
-                if (window.userId && window.onFirebaseReady) {
-                    window.onFirebaseReady();
-                }
-            });
-
-            if (initialAuthToken) {
-                signInWithCustomToken(window.auth, initialAuthToken)
-                    .then((userCredential) => {
-                        console.log("Signed in with custom token:", userCredential.user.uid);
-                    })
-                    .catch((error) => {
-                        console.error("Custom token sign-in failed:", error);
-                        signInAnonymously(window.auth).then((userCredential) => {
-                            console.log("Signed in anonymously after custom token failure:", userCredential.user.uid);
-                        }).catch((anonError) => {
-                            console.error("Anonymous sign-in fallback also failed:", anonError);
-                            document.getElementById('gameMessage').textContent = 'Error: Could not sign in. Game progress will not be saved.';
-                            document.getElementById('gameMessage').style.display = 'block';
-                        });
-                    });
-            } else if (!window.auth.currentUser) {
-                signInAnonymously(window.auth).then((userCredential) => {
-                    console.log("Signed in anonymously at start:", userCredential.user.uid);
-                }).catch((error) => {
-                    console.error("Initial anonymous sign-in failed:", error);
-                    document.getElementById('gameMessage').textContent = 'Error: Could not sign in. Game progress will not be saved.';
-                    document.getElementById('gameMessage').style.display = 'block';
-                });
-            }
-        } else {
-            console.warn("Firebase config not found. Game progress will not be saved.");
-            document.getElementById('gameMessage').textContent = 'Warning: Firebase config missing. Progress will not be saved.';
-            document.getElementById('gameMessage').style.display = 'block';
-            window.isAuthReady = true;
-            if (window.onFirebaseReady) {
-                window.onFirebaseReady();
-            }
-        }
-
-        window.getFirestore = getFirestore;
-        window.doc = doc;
-        window.setDoc = setDoc;
-        window.onSnapshot = onSnapshot;
-        window.collection = collection;
-        window.appId = appId;
-    </script>
 </head>
 <body>
     <div class="game-container">
         <div class="info-container">
             <div id="playerPoundsDisplay" class="info-item">P$: 0</div>
+            <div id="playerEpsilonDollarsDisplay" class="info-item">E$: 0</div>
             <div id="healthDisplay" class="info-item">Health: 3</div>
             <div id="levelDisplay" class="info-item" style="display: none;">Level: 1</div>
         </div>
@@ -473,19 +427,30 @@
         <canvas id="gameCanvas"></canvas>
         <div id="gameMessage" class="game-message">Loading Game...</div>
 
-        <!-- Shop Screen -->
-        <div id="shopScreen">
-            <h2 style="color: #00f0ff; text-shadow: 0 0 5px #00f0ff;">Shop</h2>
-            <div id="shopItemsContainer">
+        <!-- P$ Shop Screen -->
+        <div id="pShopScreen" class="shop-screen">
+            <h2 style="color: #00f0ff; text-shadow: 0 0 5px #00f0ff;">P$ Shop</h2>
+            <div id="pShopItemsContainer" class="shop-items-container">
             </div>
-            <button id="backToMenuFromShopBtn">Back to Main Menu</button>
+            <button id="backToMenuFromPShopBtn">Back to Main Menu</button>
         </div>
+
+        <!-- E$ Shop Screen -->
+        <div id="eShopScreen" class="shop-screen">
+            <h2 style="color: #ff00ff; text-shadow: 0 0 5px #ff00ff;">E$ Shop (Permanent Upgrades)</h2>
+            <p id="equippedBulletModeDisplay" class="info-item" style="margin-top: 10px; color: #00f0ff;">Equipped Bullet: Normal</p>
+            <div id="eShopItemsContainer" class="shop-items-container">
+            </div>
+            <button id="backToMenuFromEShopBtn">Back to Main Menu</button>
+        </div>
+
 
         <!-- Main Menu Buttons -->
         <div id="mainMenuButtons" class="button-group">
             <button id="levelModeBtn">Level Mode</button>
             <button id="endlessModeBtn">Endless Mode</button>
-            <button id="shopBtn">Shop</button>
+            <button id="pShopBtn">P$ Shop</button>
+            <button id="eShopBtn">E$ Shop</button>
         </div>
 
         <!-- In-Game Buttons -->
@@ -495,36 +460,14 @@
             <button id="returnToMenuBtn" style="display: none;">Main Menu</button>
         </div>
     </div>
-    <div id="instructionsText" class="instructions" style="display: none;">
+    <div id="instructionsText" class="instructions">
         <p>Instructions:</p>
         <p>Use LEFT and RIGHT arrow keys to move.</p>
         <p>Press SPACEBAR to shoot.</p>
         <p>Destroy enemies to earn P$. Catch falling bonuses!</p>
-        <p>Defeat bosses for permanent speed upgrades!</p>
     </div>
 
     <script type="module">
-        const { getFirestore, doc, setDoc, onSnapshot, collection, appId } = window;
-        let userId = window.userId;
-        let isAuthReady = window.isAuthReady;
-
-        Object.defineProperty(window, 'userId', {
-            get: () => userId,
-            set: (value) => {
-                userId = value;
-            }
-        });
-        Object.defineProperty(window, 'isAuthReady', {
-            get: () => isAuthReady,
-            set: (value) => {
-                isAuthReady = value;
-                if (isAuthReady && !window.initialLoadDone) {
-                    window.initialLoadDone = true;
-                    loadProgress();
-                }
-            }
-        });
-
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -534,6 +477,7 @@
         canvas.height = CANVAS_HEIGHT;
 
         const playerPoundsDisplay = document.getElementById('playerPoundsDisplay');
+        const playerEpsilonDollarsDisplay = document.getElementById('playerEpsilonDollarsDisplay');
         const healthDisplay = document.getElementById('healthDisplay');
         const levelDisplay = document.getElementById('levelDisplay');
         const gameMessage = document.getElementById('gameMessage');
@@ -541,28 +485,43 @@
         const bossHealthBar = document.getElementById('bossHealthBar');
         const instructionsText = document.getElementById('instructionsText');
         const levelMapContainer = document.getElementById('levelMapContainer');
-        const shopScreen = document.getElementById('shopScreen');
-        const shopItemsContainer = document.getElementById('shopItemsContainer');
+        const equippedBulletModeDisplay = document.getElementById('equippedBulletModeDisplay');
+
+
+        const pShopScreen = document.getElementById('pShopScreen');
+        const pShopItemsContainer = document.getElementById('pShopItemsContainer');
+
+        const eShopScreen = document.getElementById('eShopScreen');
+        const eShopItemsContainer = document.getElementById('eShopItemsContainer');
 
         const mainMenuButtons = document.getElementById('mainMenuButtons');
         const inGameButtons = document.getElementById('inGameButtons');
         const levelModeBtn = document.getElementById('levelModeBtn');
         const endlessModeBtn = document.getElementById('endlessModeBtn');
-        const shopBtn = document.getElementById('shopBtn');
+        const pShopBtn = document.getElementById('pShopBtn');
+        const eShopBtn = document.getElementById('eShopBtn');
         const nextLevelBtn = document.getElementById('nextLevelBtn');
         const resetGameBtn = document.getElementById('resetGameBtn');
         const returnToMenuBtn = document.getElementById('returnToMenuBtn');
-        const backToMenuFromShopBtn = document.getElementById('backToMenuFromShopBtn');
+        const backToMenuFromPShopBtn = document.getElementById('backToMenuFromPShopBtn');
+        const backToMenuFromEShopBtn = document.getElementById('backToMenuFromEShopBtn');
 
         let gameRunning = false;
         let gameMode = null;
         let currentLevelIndex = 0;
         let completedLevels = new Set();
         let playerPounds = 0;
+        let playerEpsilonDollars = 0;
         let playerHealth = 3;
         let playerMaxHealth = 3;
         let animationId;
-        let bossSpawnScoreThreshold = 500;
+
+        let epsilonDollarIntervalId = null;
+
+        // Boss spawning in endless mode now based on time and chance
+        let lastBossSpawnAttemptTime = 0;
+        const bossAttemptInterval = 60000; // 1 minute in milliseconds
+        const bossChancePerInterval = 0.4; // 40% chance every minute
 
         let enemiesKilledThisLevel = 0;
         let maxEnemiesToSpawnForLevel = 0;
@@ -576,18 +535,30 @@
             x: CANVAS_WIDTH / 2 - 20,
             y: CANVAS_HEIGHT - 40,
             baseSpeed: 5,
-            currentSpeed: 5,
-            bulletDamage: 1,
-            color: '#00ff77'
+            baseBulletDamage: 1,
+            baseShootCooldown: 500,
+            color: '#00ff77',
+
+            // These flags will now be controlled by `equippedBulletMode`
+            hasBeamShot: false,
+            hasExplodingBullets: false,
+            hasHomingBullets: false,
+            hasPiercingShotLevel: 0, // This is a passive upgrade, not mutually exclusive equipment
+
+            equippedBulletMode: 'normal' // 'normal', 'beam_shot', 'exploding_bullets', 'homing_bullets'
         };
+
+        let currentEffectiveSpeed = player.baseSpeed;
+        let currentEffectiveBulletDamage = player.baseBulletDamage;
+        let currentEffectiveShootCooldown = player.baseShootCooldown;
 
         const bullets = [];
         const bulletSpeed = 7;
         const bulletWidth = 4;
         const bulletHeight = 10;
         const bulletColor = '#ffdd00';
-        let currentShootCooldown = 500;
         const initialShootCooldown = 500;
+        let currentShootCooldown = initialShootCooldown;
         let canShoot = true;
 
         let multiShotCount = 1;
@@ -599,22 +570,27 @@
         const reducedCooldown = 150;
 
         let enemies = [];
-        const enemySpeed = 1;
+        const enemySpeed = 1; // Base enemy speed
         const enemyWidth = 30;
         const enemyHeight = 30;
         const normalEnemyColor = '#ff0077';
         const heavyEnemyColor = '#cc00cc';
         const shooterEnemyColor = '#ff5500';
         const bossMinionColor = '#ff00ff';
+        const dodgerEnemyColor = '#00ccff'; // New color for Dodger
+        const armoredEnemyColor = '#888888'; // New color for Armored
 
         let enemySpawnInterval = 1000;
         let lastEnemySpawnTime = 0;
         const enemyDropBonusChance = 0.3;
 
+        // Expanded enemy types
         const enemyTypes = {
-            NORMAL: { health: 1, color: normalEnemyColor, canShoot: false, value: 10 },
-            HEAVY: { health: 2, color: heavyEnemyColor, canShoot: false, value: 20 },
-            SHOOTER: { health: 1, color: shooterEnemyColor, canShoot: true, shootCooldown: 2000, value: 15 },
+            NORMAL: { health: 1, color: normalEnemyColor, canShoot: false, value: 10, speed: 1.0 },
+            HEAVY: { health: 2, color: heavyEnemyColor, canShoot: false, value: 20, speed: 0.7 },
+            SHOOTER: { health: 1, color: shooterEnemyColor, canShoot: true, shootCooldown: 2000, value: 15, speed: 1.2 },
+            DODGER: { health: 1, color: dodgerEnemyColor, canShoot: false, value: 30, speed: 3.0 }, // Fast, harder to hit
+            ARMORED: { health: 5, color: armoredEnemyColor, canShoot: false, value: 50, speed: 0.4 }, // Slow, high health
             BOSS_MINION: { health: 2, color: bossMinionColor, canShoot: true, shootCooldown: 1500, speed: 1.5, value: 25 }
         };
 
@@ -658,30 +634,47 @@
         const particles = [];
         const particleGravity = 0.05;
 
+        // New array for explosion orbs
+        const explosionOrbs = [];
+        const orbLifetime = 60; // Frames or milliseconds, adjust as needed (e.g., 60 frames = 1 second)
+        const orbSize = 40; // Orb size increased to 40
+        const orbDamage = 1;
+
         const keys = {
             ArrowLeft: false,
             ArrowRight: false,
             Space: false
         };
 
-        const shopItems = [
+        // Secret code variables
+        let secretCodeBuffer = '';
+        const SECRET_CODE_PREFIX = 'E$m-+99'; // Changed cheat code
+        const SECRET_CODE_LENGTH = SECRET_CODE_PREFIX.length; // Updated length
+
+        // Sound cooldown for hitSynth to prevent rapid triggering
+        let lastHitSoundTime = 0;
+        const hitSoundCooldown = 50; // milliseconds
+
+        const pShopItems = [
             {
                 id: 'player_speed_1',
                 name: "Speed Boost I",
                 description: "Increase player movement speed by 1.",
                 cost: 100,
-                effect: () => { player.baseSpeed += 1; player.currentSpeed = player.baseSpeed; },
+                effect: () => { player.baseSpeed += 1; },
                 maxPurchases: 3,
-                currentPurchases: 0
+                currentPurchases: 0,
+                isEquippable: false // Not an equippable bullet mode
             },
             {
                 id: 'player_speed_2',
                 name: "Speed Boost II",
                 description: "Increase player movement speed by 2.",
                 cost: 300,
-                effect: () => { player.baseSpeed += 2; player.currentSpeed = player.baseSpeed; },
+                effect: () => { player.baseSpeed += 2; },
                 maxPurchases: 1,
-                currentPurchases: 0
+                currentPurchases: 0,
+                isEquippable: false
             },
             {
                 id: 'max_health_upgrade',
@@ -690,18 +683,99 @@
                 cost: 200,
                 effect: () => { playerMaxHealth += 1; playerHealth = playerMaxHealth; },
                 maxPurchases: 2,
-                currentPurchases: 0
+                currentPurchases: 0,
+                isEquippable: false
             },
             {
                 id: 'bullet_damage_upgrade',
                 name: "Bullet Damage +1",
                 description: "Increase your bullet damage by 1.",
                 cost: 150,
-                effect: () => { player.bulletDamage += 1; },
+                effect: () => { player.baseBulletDamage += 1; },
                 maxPurchases: 3,
-                currentPurchases: 0
+                currentPurchases: 0,
+                isEquippable: false
             }
         ];
+
+        const eShopItems = [
+            {
+                id: 'permanent_rapid_fire',
+                name: "Permanent Rapid Fire",
+                description: "Permanently reduces your base bullet cooldown by 50ms.",
+                cost: 25,
+                currency: 'E$',
+                effect: () => {
+                    player.baseShootCooldown = Math.max(100, player.baseShootCooldown - 50);
+                },
+                maxPurchases: 5,
+                currentPurchases: 0,
+                isEquippable: false
+            },
+            {
+                id: 'piercing_shot_1',
+                name: "Piercing Shot I",
+                description: "Your bullets pierce through 1 additional enemy. (Stacks with II)",
+                cost: 15, // Lowered piercing cost as it's not a mutually exclusive equipable
+                currency: 'E$',
+                effect: () => { player.hasPiercingShotLevel = Math.max(player.hasPiercingShotLevel, 1); },
+                maxPurchases: 1,
+                currentPurchases: 0,
+                isEquippable: false // Passive upgrade
+            },
+             {
+                id: 'piercing_shot_2',
+                name: "Piercing Shot II",
+                description: "Your bullets pierce through 2 additional enemies. (Requires Piercing Shot I)",
+                cost: 25, // Lowered piercing cost
+                currency: 'E$',
+                effect: () => { player.hasPiercingShotLevel = Math.max(player.hasPiercingShotLevel, 2); },
+                maxPurchases: 1,
+                currentPurchases: 0,
+                requires: [{ id: 'piercing_shot_1', purchased: 1 }],
+                isEquippable: false // Passive upgrade
+            },
+            {
+                id: 'exploding_bullets',
+                name: "Exploding Bullets",
+                description: "Destroyed enemies leave behind a yellow orb that damages foes.",
+                cost: 40,
+                currency: 'E$',
+                effect: () => { /* Effect applied on equip */ },
+                maxPurchases: 1,
+                currentPurchases: 0,
+                isEquippable: true,
+                equippedEffect: () => { player.hasExplodingBullets = true; },
+                unequippedEffect: () => { player.hasExplodingBullets = false; }
+            },
+            {
+                id: 'homing_bullets',
+                name: "Homing Bullets",
+                description: "Your bullets slightly curve towards the nearest enemy (mild homing). Equip to activate.",
+                cost: 60,
+                currency: 'E$',
+                effect: () => { /* Effect applied on equip */ },
+                maxPurchases: 1,
+                currentPurchases: 0,
+                isEquippable: true,
+                equippedEffect: () => { player.hasHomingBullets = true; },
+                unequippedEffect: () => { player.hasHomingBullets = false; }
+            },
+            {
+                id: 'beam_shot',
+                name: "Beam Shot",
+                description: "Fires a powerful vertical blue energy beam. Equip to activate.",
+                cost: 80,
+                currency: 'E$',
+                effect: () => { /* Effect applied on equip */ },
+                maxPurchases: 1,
+                currentPurchases: 0,
+                isEquippable: true,
+                equippedEffect: () => { player.hasBeamShot = true; },
+                unequippedEffect: () => { player.hasBeamShot = false; }
+            }
+        ];
+
 
         const levels = [];
 
@@ -714,6 +788,8 @@
                     enemySpawnInterval: Math.max(config.minSpawnInterval, config.baseSpawnInterval - (i - start) * config.spawnIntervalDecrease),
                     heavyEnemyChance: config.heavyEnemyChance,
                     shooterEnemyChance: config.shooterEnemyChance,
+                    dodgerEnemyChance: config.dodgerEnemyChance || 0,
+                    armoredEnemyChance: config.armoredEnemyChance || 0,
                     bossLevel: false,
                     message: `Level ${i}: ${config.tierName}`
                 });
@@ -730,7 +806,9 @@
             spawnIntervalDecrease: 200,
             minSpawnInterval: 1500,
             heavyEnemyChance: 0.05,
-            shooterEnemyChance: 0.02
+            shooterEnemyChance: 0.02,
+            dodgerEnemyChance: 0.0,
+            armoredEnemyChance: 0.0
         });
 
         addLevels(6, 9, {
@@ -743,7 +821,9 @@
             spawnIntervalDecrease: 150,
             minSpawnInterval: 800,
             heavyEnemyChance: 0.2,
-            shooterEnemyChance: 0.1
+            shooterEnemyChance: 0.1,
+            dodgerEnemyChance: 0.05,
+            armoredEnemyChance: 0.02
         });
         levels.push({
             name: "The Guardian",
@@ -752,6 +832,8 @@
             enemySpawnInterval: 9999999,
             heavyEnemyChance: 0,
             shooterEnemyChance: 0,
+            dodgerEnemyChance: 0,
+            armoredEnemyChance: 0,
             bossLevel: true,
             message: "Level 10: Confront The Guardian!",
             bossSpecifics: {
@@ -775,7 +857,9 @@
             spawnIntervalDecrease: 100,
             minSpawnInterval: 500,
             heavyEnemyChance: 0.35,
-            shooterEnemyChance: 0.2
+            shooterEnemyChance: 0.2,
+            dodgerEnemyChance: 0.1,
+            armoredEnemyChance: 0.05
         });
         levels.push({
             name: "The Sentinel",
@@ -784,6 +868,8 @@
             enemySpawnInterval: 9999999,
             heavyEnemyChance: 0,
             shooterEnemyChance: 0,
+            dodgerEnemyChance: 0,
+            armoredEnemyChance: 0,
             bossLevel: true,
             message: "Level 20: The Sentinel Awaits!",
             bossSpecifics: {
@@ -807,7 +893,9 @@
             spawnIntervalDecrease: 50,
             minSpawnInterval: 300,
             heavyEnemyChance: 0.5,
-            shooterEnemyChance: 0.35
+            shooterEnemyChance: 0.35,
+            dodgerEnemyChance: 0.15,
+            armoredEnemyChance: 0.1
         });
         levels.push({
             name: "The Annihilator",
@@ -816,6 +904,8 @@
             enemySpawnInterval: 9999999,
             heavyEnemyChance: 0,
             shooterEnemyChance: 0,
+            dodgerEnemyChance: 0,
+            armoredEnemyChance: 0,
             bossLevel: true,
             message: "Level 30: CONFRONT THE ANNIHILATOR!",
             bossSpecifics: {
@@ -865,9 +955,44 @@
             volume: -10
         }).toDestination();
 
+        // New synth for beam shot
+        const beamSynth = new Tone.Synth({
+            oscillator: { type: "sawtooth" },
+            envelope: {
+                attack: 0.1,
+                decay: 0.5,
+                sustain: 0.3,
+                release: 0.8
+            },
+            volume: -5
+        }).toDestination();
+
+
         window.addEventListener('keydown', (e) => {
             if (e.code in keys) {
                 keys[e.code] = true;
+            }
+
+            // Secret code logic
+            // Only capture printable characters and hyphens for the secret code
+            if (e.key.length === 1 || e.key === '-') {
+                secretCodeBuffer += e.key;
+                // Keep the buffer length manageable, e.g., slightly longer than the secret code
+                if (secretCodeBuffer.length > SECRET_CODE_LENGTH + 5) {
+                    secretCodeBuffer = secretCodeBuffer.substring(secretCodeBuffer.length - (SECRET_CODE_LENGTH + 5));
+                }
+                
+                if (secretCodeBuffer.includes(SECRET_CODE_PREFIX)) {
+                    playerPounds += 10000;
+                    playerEpsilonDollars += 10000;
+                    updatePlayerPoundsDisplay();
+                    gameMessage.textContent = 'Secret Code Activated! Resources Granted!';
+                    gameMessage.style.display = 'block';
+                    gameMessage.classList.add('small-text');
+                    setTimeout(() => { gameMessage.style.display = 'none'; }, 2000);
+                    secretCodeBuffer = ''; // Reset buffer after code activation
+                    saveProgress(); // Save the new currency amounts
+                }
             }
         });
 
@@ -883,11 +1008,18 @@
         }
 
         function updatePlayer() {
+            currentEffectiveSpeed = player.baseSpeed;
+
             if (keys.ArrowLeft && player.x > 0) {
-                player.x -= player.currentSpeed;
+                player.x -= currentEffectiveSpeed;
             }
             if (keys.ArrowRight && player.x < CANVAS_WIDTH - player.width) {
-                player.x += player.currentSpeed;
+                player.x += currentEffectiveSpeed;
+            }
+
+            currentEffectiveShootCooldown = player.baseShootCooldown;
+            if (Date.now() < cooldownEffectEndTime) {
+                currentEffectiveShootCooldown = Math.min(currentEffectiveShootCooldown, reducedCooldown);
             }
 
             if (keys.Space && canShoot) {
@@ -895,20 +1027,46 @@
                 canShoot = false;
                 setTimeout(() => {
                     canShoot = true;
-                }, currentShootCooldown);
+                }, currentEffectiveShootCooldown);
             }
         }
 
         function shootPlayerBullet() {
-            const baseBulletX = player.x + player.width / 2 - bulletWidth / 2;
             playerShootSynth.triggerAttackRelease("C4", "8n");
 
+            const bulletDamage = player.baseBulletDamage;
+
+            const baseBulletX = player.x + player.width / 2 - bulletWidth / 2;
             const bulletDetails = {
                 width: bulletWidth,
                 height: bulletHeight,
                 color: bulletColor,
-                damage: player.bulletDamage
+                damage: bulletDamage,
+                piercedCount: player.hasPiercingShotLevel
             };
+
+            // Handle equipped bullet modes
+            if (player.equippedBulletMode === 'beam_shot') {
+                beamSynth.triggerAttackRelease("C3", "0.5");
+                bullets.push({
+                    x: player.x + player.width / 2 - 10, // Centered on player
+                    y: player.y - CANVAS_HEIGHT, // Start from top, appear instantly
+                    width: 20, // Narrow vertical beam
+                    height: CANVAS_HEIGHT, // Full height
+                    color: 'rgba(0, 150, 255, 0.7)', // Blue with transparency
+                    damage: bulletDamage * 20, // High damage
+                    isBeam: true,
+                    lifetime: 10 // Short active duration
+                });
+                // Create particles along the beam path
+                for (let y = player.y; y > 0; y -= 10) {
+                    createExplosionParticles(player.x + player.width / 2, y, '#0096FF', 2);
+                }
+                return;
+            }
+
+            // Other equippable bullet modes are now just normal bullets with specific effects
+            // Their "effect" functions (hasExplodingBullets, hasHomingBullets) are handled by equipBulletMode
 
             if (multiShotCount === 1) {
                 bullets.push({ x: baseBulletX, y: player.y - bulletHeight, ...bulletDetails });
@@ -936,14 +1094,187 @@
 
         function updateBullets() {
             for (let i = bullets.length - 1; i >= 0; i--) {
-                bullets[i].y -= bulletSpeed;
-                if (bullets[i].y < 0) {
-                    bullets.splice(i, 1);
+                const bullet = bullets[i];
+
+                if (bullet.isBeam) {
+                    bullet.lifetime--;
+                    if (bullet.lifetime <= 0) {
+                        bullets.splice(i, 1);
+                    }
+                } else {
+                    if (player.hasHomingBullets && enemies.length > 0) {
+                        let closestEnemy = null;
+                        let minDistSq = Infinity;
+
+                        for (const enemy of enemies) {
+                            const dx = (enemy.x + enemy.width / 2) - (bullet.x + bullet.width / 2);
+                            const dy = (enemy.y + enemy.height / 2) - (bullet.y + bullet.height / 2);
+                            const distSq = dx * dx + dy * dy;
+                            if (distSq < minDistSq) {
+                                minDistSq = distSq;
+                                closestEnemy = enemy;
+                            }
+                        }
+
+                        if (closestEnemy) {
+                            const dx = (closestEnemy.x + closestEnemy.width / 2) - (bullet.x + bullet.width / 2);
+                            const dy = (closestEnemy.y + closestEnemy.height / 2) - (bullet.y + bullet.height / 2);
+                            const angle = Math.atan2(dy, dx);
+
+                            const homingStrength = 0.05;
+                            bullet.x += Math.cos(angle) * bulletSpeed * homingStrength;
+                            bullet.y += Math.sin(angle) * bulletSpeed * homingStrength - bulletSpeed * (1 - homingStrength);
+                        } else {
+                            bullet.y -= bulletSpeed;
+                        }
+                    } else {
+                        bullet.y -= bulletSpeed;
+                    }
+
+                    if (bullet.y < 0) {
+                        bullets.splice(i, 1);
+                    }
                 }
             }
         }
 
-        function spawnEnemy(type = 'NORMAL', speedMultiplier = 1) {
+        // Modified createExplosion to create an orb instead of direct area damage
+        function createExplosion(x, y, damage, radius) {
+            // Instead of dealing damage directly, create an orb
+            explosionOrbs.push({
+                x: x - orbSize / 2,
+                y: y - orbSize / 2,
+                width: orbSize,
+                height: orbSize,
+                color: '#FFFF00', // Yellow color for the orb
+                damage: orbDamage, // Orb deals 1 damage per touch
+                lifetime: orbLifetime,
+                hitEnemies: new Set() // To prevent multiple hits from the same orb on the same enemy
+            });
+            explosionSynth.triggerAttackRelease("0.5", "8n");
+            createExplosionParticles(x, y, '#ff8800', 30);
+        }
+
+        // New functions for explosion orbs
+        function drawExplosionOrbs() {
+            explosionOrbs.forEach(orb => {
+                ctx.save();
+                ctx.globalAlpha = orb.lifetime / orbLifetime; // Fade out effect
+                ctx.fillStyle = orb.color;
+                ctx.fillRect(orb.x, orb.y, orb.width, orb.height);
+                ctx.restore();
+            });
+        }
+
+        function updateExplosionOrbs() {
+            for (let i = explosionOrbs.length - 1; i >= 0; i--) {
+                const orb = explosionOrbs[i];
+                orb.lifetime--;
+
+                // Check for collision with enemies
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const enemy = enemies[j];
+                    if (checkCollision(orb, enemy) && !orb.hitEnemies.has(enemy)) {
+                        enemy.health -= orb.damage;
+                        orb.hitEnemies.add(enemy); // Mark enemy as hit by this orb
+                        // Only play hit sound if cooldown allows
+                        if (Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                            hitSynth.triggerAttackRelease("G4", "16n");
+                            lastHitSoundTime = Date.now();
+                        }
+                        if (enemy.health <= 0) {
+                            createBonus(enemy.x, enemy.y);
+                            createExplosionParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color, 20);
+                            // If an enemy killed by an orb also has exploding bullets, it should create another orb.
+                            if (player.hasExplodingBullets) {
+                                createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, 0, 0); // Orb creation now handled
+                            }
+                            enemies.splice(j, 1);
+                            if (gameMode !== 'endless') {
+                                playerPounds += enemyTypes[enemy.type].value;
+                            }
+                            explosionSynth.triggerAttackRelease("0.5", "8n");
+                            updatePlayerPoundsDisplay();
+                        }
+                    }
+                }
+
+                // Check for collision with boss
+                if (boss.exists && checkCollision(orb, boss) && !orb.hitEnemies.has(boss)) {
+                    boss.health -= orb.damage;
+                    orb.hitEnemies.add(boss); // Mark boss as hit by this orb
+                    // Only play hit sound if cooldown allows
+                    if (Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                        hitSynth.triggerAttackRelease("A4", "16n");
+                        lastHitSoundTime = Date.now();
+                    }
+                    updateBossHealthDisplay();
+                    if (boss.health <= 0) {
+                        explosionSynth.triggerAttackRelease("1", "4n");
+                        createExplosionParticles(boss.x + boss.width / 2, boss.y + boss.height / 2, boss.color, 100);
+
+                        if (gameMode === 'endless') {
+                            playerPounds += 500;
+                            gameMessage.textContent = 'BOSS DEFEATED! SPEED UPGRADE!';
+                            gameMessage.style.display = 'block';
+                            gameMessage.classList.remove('small-text');
+                            setTimeout(() => { gameMessage.style.display = 'none'; }, 3000);
+                            player.currentSpeed += 1;
+                            player.baseSpeed += 1;
+                            saveProgress();
+                        } else if (gameMode === 'level' && levelIsBossFight) {
+                            handleLevelCompletion();
+                        }
+                        boss.exists = false;
+                        bossHealthContainer.style.display = 'none';
+                    }
+                }
+
+                if (orb.lifetime <= 0) {
+                    explosionOrbs.splice(i, 1);
+                }
+            }
+        }
+
+
+        function spawnEnemy(levelConfig) {
+            let type = 'NORMAL';
+            const rand = Math.random();
+
+            if (gameMode === 'level') {
+                const enemyChances = [
+                    { type: 'SHOOTER', chance: levelConfig.shooterEnemyChance },
+                    { type: 'HEAVY', chance: levelConfig.heavyEnemyChance },
+                    { type: 'DODGER', chance: levelConfig.dodgerEnemyChance },
+                    { type: 'ARMORED', chance: levelConfig.armoredEnemyChance }
+                ];
+
+                let cumulativeChance = 0;
+                for (const enemyChance of enemyChances) {
+                    cumulativeChance += enemyChance.chance;
+                    if (rand < cumulativeChance) {
+                        type = enemyChance.type;
+                        break;
+                    }
+                }
+                if (type === 'NORMAL' && rand >= cumulativeChance) {
+                    type = 'NORMAL';
+                }
+
+            } else { // Endless Mode - fixed probabilities
+                if (rand < 0.15) {
+                    type = 'SHOOTER';
+                } else if (rand < 0.30) {
+                    type = 'HEAVY';
+                } else if (rand < 0.45) {
+                    type = 'DODGER';
+                } else if (rand < 0.55) {
+                    type = 'ARMORED';
+                } else {
+                    type = 'NORMAL';
+                }
+            }
+
             const enemyProps = enemyTypes[type];
             enemies.push({
                 x: Math.random() * (CANVAS_WIDTH - enemyWidth),
@@ -956,7 +1287,7 @@
                 canShoot: enemyProps.canShoot,
                 shootCooldown: enemyProps.shootCooldown,
                 lastShotTime: Date.now(),
-                speed: enemyProps.speed * speedMultiplier || enemySpeed * speedMultiplier
+                speed: enemyProps.speed
             });
             enemiesSpawnedInLevel++;
         }
@@ -993,7 +1324,7 @@
             enemies.forEach(enemy => {
                 ctx.fillStyle = enemy.color;
                 ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-                if ((enemy.type === 'HEAVY' || enemy.type === 'BOSS_MINION') && enemy.health > 0) {
+                if ((enemy.type === 'HEAVY' || enemy.type === 'BOSS_MINION' || enemy.type === 'ARMORED') && enemy.health > 0) {
                     ctx.fillStyle = 'red';
                     const healthBarWidth = enemy.width * (enemy.health / enemyTypes[enemy.type].health);
                     ctx.fillRect(enemy.x, enemy.y - 5, healthBarWidth, 3);
@@ -1003,12 +1334,13 @@
 
         function updateEnemies() {
             const currentTime = Date.now();
+            const currentLevelConfig = levels[currentLevelIndex];
 
             if (gameMode === 'level') {
                 if (!levelIsBossFight) {
                     if (enemiesSpawnedInLevel < maxEnemiesToSpawnForLevel &&
                         (currentTime - lastEnemySpawnTime > enemySpawnInterval)) {
-                        spawnEnemy();
+                        spawnEnemy(currentLevelConfig);
                         lastEnemySpawnTime = currentTime;
                     } else if (enemiesSpawnedInLevel >= maxEnemiesToSpawnForLevel && enemies.length === 0 && !levelCompletionHandled) {
                         handleLevelCompletion();
@@ -1016,9 +1348,14 @@
                 }
             } else {
                 if (!boss.exists) {
-                    let currentSpawnInterval = Math.max(200, 1000 - (playerPounds / 10));
-                    if (currentTime - lastEnemySpawnTime > currentSpawnInterval) {
-                        spawnEnemy();
+                    // Endless Mode Difficulty Nerf:
+                    // Increased base interval (1500 -> 1800)
+                    // Increased P$ divisor (40 -> 50)
+                    // Increased E$ divisor (20 -> 25)
+                    // Increased minimum spawn interval (300 -> 350)
+                    let dynamicSpawnInterval = Math.max(350, 1800 - (playerPounds / 50) - (playerEpsilonDollars / 25));
+                    if (currentTime - lastEnemySpawnTime > dynamicSpawnInterval) {
+                        spawnEnemy(currentLevelConfig);
                         lastEnemySpawnTime = currentTime;
                     }
                 }
@@ -1027,7 +1364,7 @@
 
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
-                enemy.y += enemy.speed || (gameMode === 'level' ? levels[currentLevelIndex].enemySpeed : enemySpeed);
+                enemy.y += enemy.speed;
 
                 if (enemy.canShoot && currentTime - enemy.lastShotTime > enemy.shootCooldown) {
                     shootEnemyBullet(enemy);
@@ -1039,7 +1376,11 @@
                     if (!boss.exists || gameMode === 'endless' || enemy.type === 'BOSS_MINION') {
                         playerHealth--;
                         updateHealthDisplay();
-                        hitSynth.triggerAttackRelease("C2", "8n");
+                        // Only play hit sound if cooldown allows
+                        if (Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                            hitSynth.triggerAttackRelease("C2", "8n");
+                            lastHitSoundTime = Date.now();
+                        }
                         if (playerHealth <= 0) {
                             createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50);
                             endGame('Game Over! You ran out of health.');
@@ -1098,7 +1439,12 @@
         function spawnBoss() {
             if (!boss.exists) {
                 boss.exists = true;
-                const bossSpecs = levels[currentLevelIndex].bossSpecifics;
+                const bossLevels = levels.filter(level => level.bossLevel);
+                const randomBossLevelConfig = bossLevels[Math.floor(Math.random() * bossLevels.length)];
+                
+                const originalCurrentLevelIndex = currentLevelIndex;
+                currentLevelIndex = levels.indexOf(randomBossLevelConfig);
+                const bossSpecs = randomBossLevelConfig.bossSpecifics;
 
                 boss.maxHealth = bossSpecs.health;
                 boss.speed = bossSpecs.movementSpeed;
@@ -1120,10 +1466,12 @@
 
                 bossHealthContainer.style.display = 'block';
                 updateBossHealthDisplay();
-                gameMessage.textContent = `BOSS ALERT! ${levels[currentLevelIndex].name}!`;
+                gameMessage.textContent = `BOSS ALERT! ${randomBossLevelConfig.name}!`;
                 gameMessage.style.display = 'block';
                 gameMessage.classList.remove('small-text');
                 setTimeout(() => { gameMessage.style.display = 'none'; }, 2000);
+
+                currentLevelIndex = originalCurrentLevelIndex;
             }
         }
 
@@ -1241,7 +1589,6 @@
                     setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
                     break;
                 case 'COOLDOWN':
-                    currentShootCooldown = reducedCooldown;
                     cooldownEffectEndTime = currentTime + cooldownReductionDuration;
                     gameMessage.textContent = 'Rapid Fire!';
                     gameMessage.style.display = 'block';
@@ -1270,7 +1617,6 @@
                 setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
             }
             if (cooldownEffectEndTime > 0 && currentTime > cooldownEffectEndTime) {
-                currentShootCooldown = initialShootCooldown;
                 cooldownEffectEndTime = 0;
                 gameMessage.textContent = 'Rapid Fire expired!';
                 gameMessage.style.display = 'block';
@@ -1289,49 +1635,97 @@
         function handleCollisions() {
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const bullet = bullets[i];
-                for (let j = enemies.length - 1; j >= 0; j--) {
-                    const enemy = enemies[j];
-                    if (checkCollision(bullet, enemy)) {
-                        bullets.splice(i, 1);
-                        enemy.health -= bullet.damage;
-                        hitSynth.triggerAttackRelease("G4", "16n");
-                        if (enemy.health <= 0) {
-                            createBonus(enemy.x, enemy.y);
-                            createExplosionParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color, 20);
-                            enemies.splice(j, 1);
-                            playerPounds += enemyTypes[enemy.type].value;
-                            explosionSynth.triggerAttackRelease("0.5", "8n");
-                            updatePlayerPoundsDisplay();
+                let hitEnemy = false;
+                if (bullet.isBeam) {
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        const enemy = enemies[j];
+                        if (checkCollision(bullet, enemy)) {
+                            enemy.health -= bullet.damage;
+                            // Only play hit sound if cooldown allows
+                            if (Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                                hitSynth.triggerAttackRelease("G4", "32n");
+                                lastHitSoundTime = Date.now();
+                            }
+                            if (enemy.health <= 0) {
+                                createBonus(enemy.x, enemy.y);
+                                createExplosionParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color, 20);
+                                if (player.hasExplodingBullets) {
+                                    createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, 0, 0); // Orb creation now handled
+                                }
+                                enemies.splice(j, 1);
+                                if (gameMode !== 'endless') {
+                                    playerPounds += enemyTypes[enemy.type].value;
+                                }
+                                explosionSynth.triggerAttackRelease("0.5", "8n");
+                                updatePlayerPoundsDisplay();
+                            }
                         }
-                        break;
+                    }
+                } else {
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        const enemy = enemies[j];
+                        if (checkCollision(bullet, enemy)) {
+                            hitEnemy = true;
+                            enemy.health -= bullet.damage;
+                            // Only play hit sound if cooldown allows
+                            if (Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                                hitSynth.triggerAttackRelease("G4", "16n");
+                                lastHitSoundTime = Date.now();
+                            }
+                            if (enemy.health <= 0) {
+                                createBonus(enemy.x, enemy.y);
+                                createExplosionParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color, 20);
+                                if (player.hasExplodingBullets) {
+                                    createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, 0, 0); // Orb creation now handled
+                                }
+                                enemies.splice(j, 1);
+                                if (gameMode !== 'endless') {
+                                    playerPounds += enemyTypes[enemy.type].value;
+                                }
+                                explosionSynth.triggerAttackRelease("0.5", "8n");
+                                updatePlayerPoundsDisplay();
+                            }
+
+                            if (bullet.piercedCount > 0) {
+                                bullet.piercedCount--;
+                            } else {
+                                bullets.splice(i, 1);
+                                break;
+                            }
+                        }
                     }
                 }
+
                 if (boss.exists && checkCollision(bullet, boss)) {
                     bullets.splice(i, 1);
                     boss.health -= bullet.damage;
-                    hitSynth.triggerAttackRelease("A4", "16n");
+                    // Only play hit sound if cooldown allows
+                    if (Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                        hitSynth.triggerAttackRelease("A4", "16n");
+                        lastHitSoundTime = Date.now();
+                    }
                     updateBossHealthDisplay();
                     if (boss.health <= 0) {
                         explosionSynth.triggerAttackRelease("1", "4n");
                         createExplosionParticles(boss.x + boss.width / 2, boss.y + boss.height / 2, boss.color, 100);
 
-                        playerPounds += 500;
-                        updatePlayerPoundsDisplay();
-
                         if (gameMode === 'endless') {
+                            playerPounds += 500;
                             gameMessage.textContent = 'BOSS DEFEATED! SPEED UPGRADE!';
                             gameMessage.style.display = 'block';
                             gameMessage.classList.remove('small-text');
                             setTimeout(() => { gameMessage.style.display = 'none'; }, 3000);
                             player.currentSpeed += 1;
                             player.baseSpeed += 1;
-                            bossSpawnScoreThreshold += 500;
                             saveProgress();
                         } else if (gameMode === 'level' && levelIsBossFight) {
                             handleLevelCompletion();
                         }
                         boss.exists = false;
                         bossHealthContainer.style.display = 'none';
+                    }
+                    if(!bullet.isBeam) {
+                        bullets.splice(i, 1);
                     }
                     break;
                 }
@@ -1342,7 +1736,11 @@
                     enemies.splice(i, 1);
                     playerHealth--;
                     updateHealthDisplay();
-                    hitSynth.triggerAttackRelease("C2", "8n");
+                    // Only play hit sound if cooldown allows
+                    if (Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                        hitSynth.triggerAttackRelease("C2", "8n");
+                        lastHitSoundTime = Date.now();
+                    }
                     explosionSynth.triggerAttackRelease("0.5", "8n");
                     if (playerHealth <= 0) {
                         createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50);
@@ -1357,7 +1755,11 @@
                     enemyBullets.splice(i, 1);
                     playerHealth--;
                     updateHealthDisplay();
-                    hitSynth.triggerAttackRelease("C2", "8n");
+                    // Only play hit sound if cooldown allows
+                    if (Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                        hitSynth.triggerAttackRelease("C2", "8n");
+                        lastHitSoundTime = Date.now();
+                    }
                     if (playerHealth <= 0) {
                         createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50);
                         endGame('Game Over! You were hit!');
@@ -1440,6 +1842,7 @@
 
         function updatePlayerPoundsDisplay() {
             playerPoundsDisplay.textContent = `P$: ${playerPounds}`;
+            playerEpsilonDollarsDisplay.textContent = `E$: ${playerEpsilonDollars}`;
         }
 
         function updateHealthDisplay() {
@@ -1489,65 +1892,218 @@
             });
         }
 
-        function populateShop() {
-            shopItemsContainer.innerHTML = '';
+        function updateEquippedBulletModeDisplay() {
+            let equippedName = 'Normal';
+            if (player.equippedBulletMode) {
+                const equippedItem = eShopItems.find(item => item.id === player.equippedBulletMode);
+                if (equippedItem) {
+                    equippedName = equippedItem.name;
+                }
+            }
+            equippedBulletModeDisplay.textContent = `Equipped Bullet: ${equippedName}`;
+        }
 
-            shopItems.forEach(item => {
+        function populateShop(shopType = 'P$') {
+            let shopContainer;
+            let itemsToDisplay;
+            if (shopType === 'P$') {
+                shopContainer = pShopItemsContainer;
+                itemsToDisplay = pShopItems;
+            } else {
+                shopContainer = eShopItemsContainer;
+                itemsToDisplay = eShopItems;
+                updateEquippedBulletModeDisplay(); // Update equipped display for E$ shop
+            }
+
+            shopContainer.innerHTML = '';
+
+            itemsToDisplay.forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.classList.add('shop-item');
+                if (item.currency === 'E$') {
+                    itemDiv.classList.add('epsilon');
+                }
 
                 const maxedOut = item.currentPurchases >= item.maxPurchases;
-                const canAfford = playerPounds >= item.cost;
+                const owned = item.currentPurchases > 0;
+                const canAffordP = (item.currency === 'P$' || !item.currency) ? (playerPounds >= item.cost) : false;
+                const canAffordE = item.currency === 'E$' ? (playerEpsilonDollars >= item.cost) : false;
+                const canAfford = canAffordP || canAffordE;
 
-                itemDiv.innerHTML = `
-                    <h3>${item.name}</h3>
-                    <p>${item.description}</p>
-                    <p class="cost">Cost: P$${item.cost}</p>
-                    <p>Purchased: ${item.currentPurchases}/${item.maxPurchases}</p>
-                    <button id="buy-${item.id}" ${(!canAfford || maxedOut) ? 'disabled' : ''}>
-                        ${maxedOut ? 'MAXED' : (canAfford ? 'BUY' : 'NEED P$')}
-                    </button>
-                `;
-                shopItemsContainer.appendChild(itemDiv);
-
-                const buyButton = itemDiv.querySelector(`#buy-${item.id}`);
-                if (buyButton) {
-                    buyButton.addEventListener('click', () => {
-                        if (purchaseItem(item.id)) {
-                            saveProgress();
+                let requirementsMet = true;
+                if (item.requires) {
+                    item.requires.forEach(req => {
+                        if (req && typeof req.id === 'string') {
+                            const allShopItems = [...pShopItems, ...eShopItems];
+                            const requiredItem = allShopItems.find(i => i.id === req.id);
+                            if (!requiredItem || requiredItem.currentPurchases < req.purchased) {
+                                requirementsMet = false;
+                            }
+                        } else {
+                            requirementsMet = false;
                         }
                     });
+                }
+
+                const isDisabledBuy = (!canAfford || maxedOut || !requirementsMet);
+                const buttonTextBuy = maxedOut ? 'MAXED' : (requirementsMet ? (canAfford ? 'BUY' : `NEED ${item.currency || 'P$'}`) : 'REQUIREMENTS NOT MET');
+                const currencySymbol = item.currency === 'E$' ? 'E$' : 'P$';
+
+                let itemHtml = `
+                    <h3>${item.name}</h3>
+                    <p>${item.description}</p>
+                    <p class="cost">Cost: ${currencySymbol}${item.cost}</p>
+                    <p>Purchased: ${item.currentPurchases}/${item.maxPurchases}</p>
+                `;
+
+                if (item.isEquippable) {
+                    const isEquipped = player.equippedBulletMode === item.id;
+                    itemHtml += `<p class="equip-status ${isEquipped ? '' : 'not-equipped'}">${isEquipped ? 'Currently Equipped' : 'Not Equipped'}</p>`;
+                    if (owned) {
+                        itemHtml += `
+                            <button id="equip-${item.id}" class="equip-button" ${isEquipped ? 'disabled' : ''}>
+                                ${isEquipped ? 'EQUIPPED' : 'EQUIP'}
+                            </button>
+                        `;
+                    } else {
+                        itemHtml += `
+                            <button id="buy-${item.id}" ${isDisabledBuy ? 'disabled' : ''}>
+                                ${buttonTextBuy}
+                            </button>
+                        `;
+                    }
+                } else {
+                    itemHtml += `
+                        <button id="buy-${item.id}" ${isDisabledBuy ? 'disabled' : ''}>
+                            ${buttonTextBuy}
+                        </button>
+                    `;
+                }
+                
+                itemDiv.innerHTML = itemHtml;
+                shopContainer.appendChild(itemDiv);
+
+                // Add event listeners
+                if (item.isEquippable && owned) {
+                    const equipButton = itemDiv.querySelector(`#equip-${item.id}`);
+                    if (equipButton) {
+                        equipButton.addEventListener('click', () => {
+                            equipBulletMode(item.id);
+                            saveProgress();
+                        });
+                    }
+                } else {
+                    const buyButton = itemDiv.querySelector(`#buy-${item.id}`);
+                    if (buyButton) {
+                        buyButton.addEventListener('click', () => {
+                            if (purchaseItem(item.id, shopType)) {
+                                saveProgress();
+                            }
+                        });
+                    }
                 }
             });
         }
 
-        function purchaseItem(itemId) {
-            const item = shopItems.find(i => i.id === itemId);
+        function purchaseItem(itemId, shopType) {
+            let item;
+            if (shopType === 'P$') {
+                item = pShopItems.find(i => i.id === itemId);
+            } else {
+                item = eShopItems.find(i => i.id === itemId);
+            }
+
             if (!item) return false;
 
-            if (playerPounds >= item.cost && item.currentPurchases < item.maxPurchases) {
-                playerPounds -= item.cost;
-                item.effect();
+            const maxedOut = item.currentPurchases >= item.maxPurchases;
+            let canAfford = false;
+            let currencyType = item.currency || 'P$';
+
+            if (currencyType === 'P$') {
+                canAfford = playerPounds >= item.cost;
+            } else if (currencyType === 'E$') {
+                canAfford = playerEpsilonDollars >= item.cost;
+            }
+
+            let requirementsMet = true;
+            if (item.requires) {
+                item.requires.forEach(req => {
+                    if (req && typeof req.id === 'string') {
+                        const allShopItems = [...pShopItems, ...eShopItems];
+                        const requiredItem = allShopItems.find(i => i.id === req.id);
+                        if (!requiredItem || requiredItem.currentPurchases < req.purchased) {
+                            requirementsMet = false;
+                        }
+                    } else {
+                        requirementsMet = false;
+                    }
+                });
+            }
+
+            if (canAfford && !maxedOut && requirementsMet) {
+                if (currencyType === 'P$') {
+                    playerPounds -= item.cost;
+                } else {
+                    playerEpsilonDollars -= item.cost;
+                }
+                // Only call general effect if not equippable (passive upgrades)
+                if (!item.isEquippable && item.effect) {
+                    item.effect();
+                }
                 item.currentPurchases++;
                 updatePlayerPoundsDisplay();
-                populateShop();
+                populateShop(shopType); // Re-populate to update buttons and display
                 gameMessage.textContent = `${item.name} Purchased!`;
                 gameMessage.style.display = 'block';
                 gameMessage.classList.add('small-text');
                 setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
                 return true;
-            } else if (item.currentPurchases >= item.maxPurchases) {
+            } else if (maxedOut) {
                 gameMessage.textContent = `${item.name} is Maxed Out!`;
                 gameMessage.style.display = 'block';
                 gameMessage.classList.add('small-text');
                 setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
+            } else if (!requirementsMet) {
+                gameMessage.textContent = `Requirements not met for ${item.name}!`;
+                gameMessage.style.display = 'block';
+                gameMessage.classList.add('small-text');
+                setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
             } else {
-                gameMessage.textContent = `Not enough P$ for ${item.name}!`;
+                gameMessage.textContent = `Not enough ${currencyType} for ${item.name}!`;
                 gameMessage.style.display = 'block';
                 gameMessage.classList.add('small-text');
                 setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
             }
             return false;
+        }
+
+        function equipBulletMode(modeId) {
+            // Unequip current active mode (if any)
+            const currentEquippedItem = eShopItems.find(item => item.id === player.equippedBulletMode && item.isEquippable);
+            if (currentEquippedItem && currentEquippedItem.unequippedEffect) {
+                currentEquippedItem.unequippedEffect();
+            }
+
+            // Equip the new mode
+            const newItemToEquip = eShopItems.find(item => item.id === modeId && item.isEquippable);
+            if (newItemToEquip && newItemToEquip.equippedEffect) {
+                newItemToEquip.equippedEffect();
+                player.equippedBulletMode = modeId;
+                gameMessage.textContent = `${newItemToEquip.name} Equipped!`;
+            } else {
+                // If trying to equip 'normal' or something not found/equippable
+                player.equippedBulletMode = 'normal'; // Revert to normal
+                player.hasBeamShot = false;
+                player.hasExplodingBullets = false;
+                player.hasHomingBullets = false;
+                gameMessage.textContent = `Equipped Normal Bullets!`;
+            }
+            gameMessage.style.display = 'block';
+            gameMessage.classList.add('small-text');
+            setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
+
+            populateShop('E$'); // Refresh E$ shop display
+            saveProgress();
         }
 
         function clearCanvas() {
@@ -1564,6 +2120,7 @@
             updateEnemyBullets();
             updateBonuses();
             updateBoss();
+            updateExplosionOrbs(); // New: Update explosion orbs
             handleCollisions();
             checkPowerUpExpirations();
             updateParticles();
@@ -1574,14 +2131,38 @@
             drawEnemyBullets();
             drawBonuses();
             drawBoss();
+            drawExplosionOrbs(); // New: Draw explosion orbs
             drawParticles();
 
-            if (gameMode === 'endless' && !boss.exists && playerPounds >= bossSpawnScoreThreshold) {
-                spawnBoss();
+            // Boss spawn logic for endless mode (based on time and chance)
+            if (gameMode === 'endless' && !boss.exists && Date.now() - lastBossSpawnAttemptTime > bossAttemptInterval) {
+                lastBossSpawnAttemptTime = Date.now(); // Reset timer for next attempt
+                if (Math.random() < bossChancePerInterval) {
+                    spawnBoss(); // Attempt to spawn a boss
+                }
             }
 
             animationId = requestAnimationFrame(gameLoop);
         }
+
+        function startEpsilonGeneration() {
+            if (epsilonDollarIntervalId) clearInterval(epsilonDollarIntervalId);
+            epsilonDollarIntervalId = setInterval(() => {
+                if (gameRunning && gameMode === 'endless') {
+                    playerEpsilonDollars += 10;
+                    updatePlayerPoundsDisplay();
+                    saveProgress();
+                }
+            }, 30000);
+        }
+
+        function stopEpsilonGeneration() {
+            if (epsilonDollarIntervalId) {
+                clearInterval(epsilonDollarIntervalId);
+                epsilonDollarIntervalId = null;
+            }
+        }
+
 
         function resetGameState(fullReset = false) {
             bullets.length = 0;
@@ -1589,22 +2170,44 @@
             enemyBullets.length = 0;
             bonuses.length = 0;
             particles.length = 0;
+            explosionOrbs.length = 0; // New: Reset explosion orbs
 
             player.x = CANVAS_WIDTH / 2 - 20;
             
-            if (fullReset) {
+            // Only perform a full reset of permanent upgrades if explicitly requested
+            // This prevents Endless Mode from wiping player progress
+            if (fullReset) { 
                 playerPounds = 0;
+                playerEpsilonDollars = 0;
                 playerMaxHealth = 3;
                 player.baseSpeed = 5;
-                player.bulletDamage = 1;
+                player.baseBulletDamage = 1;
+                player.baseShootCooldown = 500;
+                
+                player.hasPiercingShotLevel = 0;
+
+                player.equippedBulletMode = 'normal';
+                player.hasBeamShot = false;
+                player.hasExplodingBullets = false;
+                player.hasHomingBullets = false;
+
+
                 currentLevelIndex = 0;
                 completedLevels = new Set();
-                shopItems.forEach(item => item.currentPurchases = 0);
-                bossSpawnScoreThreshold = 500;
+                pShopItems.forEach(item => item.currentPurchases = 0);
+                eShopItems.forEach(item => {
+                    item.currentPurchases = 0;
+                    if (item.isEquippable && item.unequippedEffect) {
+                        item.unequippedEffect();
+                    }
+                });
             }
 
-            playerHealth = playerMaxHealth;
-            player.currentSpeed = player.baseSpeed;
+            // These are session-specific resets that should always happen
+            playerHealth = playerMaxHealth; // Reset current health to max for new session
+            currentEffectiveSpeed = player.baseSpeed; // Ensure current values match base values
+            currentEffectiveBulletDamage = player.baseBulletDamage;
+            currentEffectiveShootCooldown = player.baseShootCooldown;
             
             lastEnemySpawnTime = Date.now();
             currentShootCooldown = initialShootCooldown;
@@ -1622,6 +2225,7 @@
             boss.lastShotTimeTracking = 0;
             boss.minionSummonThresholds = [];
             boss.summonedMinionsAtThreshold = [];
+            lastBossSpawnAttemptTime = Date.now();
 
             enemiesKilledThisLevel = 0;
             enemiesSpawnedInLevel = 0;
@@ -1631,12 +2235,14 @@
 
             updatePlayerPoundsDisplay();
             updateHealthDisplay();
+            stopEpsilonGeneration();
         }
 
         function showUIState(state) {
             mainMenuButtons.style.display = 'none';
             inGameButtons.style.display = 'none';
-            shopScreen.style.display = 'none';
+            pShopScreen.style.display = 'none';
+            eShopScreen.style.display = 'none';
             canvas.style.display = 'none';
             levelDisplay.style.display = 'none';
             bossHealthContainer.style.display = 'none';
@@ -1701,18 +2307,26 @@
                         updateLevelMap(false);
                     }
                     break;
-                case 'shop':
-                    shopScreen.style.display = 'flex';
-                    populateShop();
-                    playerPoundsDisplay.style.display = 'block';
+                case 'pShop':
+                    pShopScreen.style.display = 'flex';
+                    populateShop('P$');
+                    playerPoundsDisplay.style.display = 'inline';
+                    playerEpsilonDollarsDisplay.style.display = 'inline';
+                    break;
+                case 'eShop':
+                    eShopScreen.style.display = 'flex';
+                    populateShop('E$');
+                    playerPoundsDisplay.style.display = 'inline';
+                    playerEpsilonDollarsDisplay.style.display = 'inline';
                     break;
             }
+            updatePlayerPoundsDisplay();
         }
-
 
         function showMainMenu() {
             gameRunning = false;
             if (animationId) cancelAnimationFrame(animationId);
+            stopEpsilonGeneration();
             showUIState('mainMenu');
             clearCanvas();
             saveProgress();
@@ -1720,7 +2334,9 @@
 
         function setupLevelMode() {
             gameMode = 'level';
-            playerHealth = playerMaxHealth;
+            // Only reset session state, preserve permanent upgrades
+            resetGameState(false); 
+            playerHealth = playerMaxHealth; // Ensure health is full when starting level mode
             updateHealthDisplay();
             showUIState('levelSelect');
             clearCanvas();
@@ -1728,7 +2344,8 @@
 
         function setupEndlessMode() {
             gameMode = 'endless';
-            resetGameState(true);
+            // Only reset session state, preserve permanent upgrades
+            resetGameState(false); 
             startGameInMode();
         }
 
@@ -1741,7 +2358,9 @@
                 gameMessage.style.display = 'block';
                 gameMessage.classList.remove('small-text');
                 setTimeout(() => { gameMessage.style.display = 'none'; }, 2000);
-                gameRunning = true; // Set gameRunning to true
+                gameRunning = true;
+                startEpsilonGeneration();
+                lastBossSpawnAttemptTime = Date.now();
                 Tone.start();
                 gameLoop();
             }
@@ -1751,7 +2370,7 @@
             gameRunning = false;
             if (animationId) cancelAnimationFrame(animationId);
             clearCanvas();
-            resetGameState(false);
+            resetGameState(false); // Only reset session, keep permanent upgrades
             
             playerHealth = Math.min(playerHealth, playerMaxHealth);
             updateHealthDisplay();
@@ -1785,7 +2404,7 @@
                 }, 1000);
             }
 
-            gameRunning = true; // Set gameRunning to true
+            gameRunning = true;
             Tone.start();
             gameLoop();
         }
@@ -1797,12 +2416,13 @@
             gameRunning = false;
             cancelAnimationFrame(animationId);
             clearCanvas();
+            stopEpsilonGeneration();
 
             const justCompletedLevelIndex = currentLevelIndex;
             completedLevels.add(justCompletedLevelIndex);
             
             if (justCompletedLevelIndex < levels.length - 1) {
-                currentLevelIndex = justCompletedLevelIndex + 1; // Correctly advance currentLevelIndex to unlock the next level
+                currentLevelIndex = justCompletedLevelIndex + 1;
             }
 
             showUIState('levelComplete');
@@ -1824,6 +2444,7 @@
         function endGame(message) {
             gameRunning = false;
             cancelAnimationFrame(animationId);
+            stopEpsilonGeneration();
             showUIState('gameOver');
             gameMessage.textContent = message;
             gameMessage.style.display = 'block';
@@ -1831,113 +2452,117 @@
             saveProgress();
         }
 
-        async function saveProgress() {
-            if (!window.db || !userId) {
-                console.warn("Firestore not initialized or user not authenticated. Progress will not be saved.");
-                return;
-            }
-
+        // --- Local Storage Persistence Functions ---
+        function saveProgress() {
             try {
-                const playerProgressRef = doc(window.db, "artifacts", appId, "users", userId, "game_data", "player_progress");
-
-                const shopItemsData = shopItems.map(item => ({
+                const pShopItemsData = pShopItems.map(item => ({
+                    id: item.id,
+                    currentPurchases: item.currentPurchases
+                }));
+                // Only save currentPurchases for E$ items. The equipped state will handle active effects.
+                const eShopItemsData = eShopItems.map(item => ({
                     id: item.id,
                     currentPurchases: item.currentPurchases
                 }));
 
                 const dataToSave = {
                     playerPounds: playerPounds,
+                    playerEpsilonDollars: playerEpsilonDollars,
                     playerMaxHealth: playerMaxHealth,
                     playerBaseSpeed: player.baseSpeed,
-                    playerBulletDamage: player.bulletDamage,
-                    shopItems: shopItemsData,
+                    playerBaseBulletDamage: player.baseBulletDamage,
+                    playerBaseShootCooldown: player.baseShootCooldown,
+                    
+                    playerHasPiercingShotLevel: player.hasPiercingShotLevel, // Passive, save directly
+                    equippedBulletMode: player.equippedBulletMode, // Save equipped mode ID
+
+                    pShopItems: pShopItemsData,
+                    eShopItems: eShopItemsData,
                     currentLevelIndex: currentLevelIndex,
                     completedLevels: Array.from(completedLevels)
                 };
 
-                await setDoc(playerProgressRef, dataToSave, { merge: true });
-                console.log("Game progress saved successfully!");
+                localStorage.setItem('ltps2dShooterGameProgress', JSON.stringify(dataToSave));
+                console.log("Game progress saved to local storage!");
             } catch (error) {
-                console.error("Error saving game progress:", error);
+                console.error("Error saving game progress to local storage:", error);
             }
         }
 
-        async function loadProgress() {
-            await new Promise(resolve => {
-                const checkAuth = setInterval(() => {
-                    if (isAuthReady && window.db && userId) { // Use local isAuthReady and userId
-                        clearInterval(checkAuth);
-                        resolve();
-                    } else if (!window.firebaseApp) {
-                        clearInterval(checkAuth);
-                        resolve();
-                    }
-                }, 100);
-            });
-
-            if (!window.db || !userId) {
-                console.warn("Firestore not initialized or user not authenticated. Loading default progress.");
-                gameMessage.textContent = 'Loading default game. Progress will not be saved.';
-                gameMessage.style.display = 'block';
-                setTimeout(() => { showMainMenu(); }, 2000);
-                return;
-            }
-
+        function loadProgress() {
             try {
-                const playerProgressRef = doc(window.db, "artifacts", appId, "users", userId, "game_data", "player_progress");
+                const savedData = localStorage.getItem('ltps2dShooterGameProgress');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    playerPounds = data.playerPounds || 0;
+                    playerEpsilonDollars = data.playerEpsilonDollars || 0;
+                    playerMaxHealth = data.playerMaxHealth || 3;
+                    player.baseSpeed = data.playerBaseSpeed || 5;
+                    player.baseBulletDamage = data.playerBaseBulletDamage || 1;
+                    player.baseShootCooldown = data.playerBaseShootCooldown || 500;
+                    
+                    player.hasPiercingShotLevel = data.playerHasPiercingShotLevel || 0;
+                    // Initialize equippedBulletMode to 'normal' if not found in saved data
+                    player.equippedBulletMode = data.equippedBulletMode || 'normal'; 
 
-                onSnapshot(playerProgressRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        playerPounds = data.playerPounds || 0;
-                        playerMaxHealth = data.playerMaxHealth || 3;
-                        player.baseSpeed = data.playerBaseSpeed || 5;
-                        player.bulletDamage = data.playerBulletDamage || 1;
-                        currentLevelIndex = data.currentLevelIndex || 0;
-                        completedLevels = new Set(data.completedLevels || []);
-
-                        if (data.shopItems) {
-                            data.shopItems.forEach(savedItem => {
-                                const shopItem = shopItems.find(item => item.id === savedItem.id);
-                                if (shopItem) {
-                                    shopItem.currentPurchases = savedItem.currentPurchases;
-                                }
-                            });
-                        }
-                        
-                        player.currentSpeed = player.baseSpeed;
-                        playerHealth = playerMaxHealth;
-                        
-                        console.log("Game progress loaded successfully!");
-                    } else {
-                        console.log("No saved data found. Starting new game.");
-                        resetGameState(true);
-                        saveProgress();
+                    if (data.pShopItems) {
+                        data.pShopItems.forEach(savedItem => {
+                            const shopItem = pShopItems.find(item => item.id === savedItem.id);
+                            if (shopItem) {
+                                shopItem.currentPurchases = savedItem.currentPurchases;
+                            }
+                        });
                     }
-                    showMainMenu();
-                }, (error) => {
-                    console.error("Error loading game progress:", error);
-                    gameMessage.textContent = 'Error loading progress. Starting new game.';
-                    gameMessage.style.display = 'block';
-                    resetGameState(true);
-                    showMainMenu();
-                });
+                    if (data.eShopItems) {
+                        data.eShopItems.forEach(savedItem => {
+                            const shopItem = eShopItems.find(item => item.id === savedItem.id);
+                            if (shopItem) {
+                                shopItem.currentPurchases = savedItem.currentPurchases;
+                            }
+                        });
+                    }
+                    
+                    currentLevelIndex = data.currentLevelIndex || 0;
+                    completedLevels = new Set(data.completedLevels || []);
+
+                    // Apply effects based on loaded state
+                    // This is crucial to activate equipped modes and piercing level after loading
+                    equipBulletMode(player.equippedBulletMode); // This will also handle unsetting old effects and setting new ones
+                    // For passive upgrades like piercing shot, ensure their effect is applied (it's loaded into player.hasPiercingShotLevel directly)
+                    
+                    currentEffectiveSpeed = player.baseSpeed;
+                    currentEffectiveBulletDamage = player.baseBulletDamage;
+                    currentEffectiveShootCooldown = player.baseShootCooldown;
+                    playerHealth = playerMaxHealth; // Reset current health to max for starting session
+
+                    console.log("Game progress loaded from local storage!");
+                } else {
+                    console.log("No saved data found in local storage. Starting new game.");
+                    resetGameState(true); // Full reset for a brand new game
+                    saveProgress(); // Save initial state for new game
+                }
             } catch (error) {
-                console.error("Failed to set up Firestore listener:", error);
-                gameMessage.textContent = 'Critical error with database. Progress will not be saved.';
+                console.error("Error loading game progress from local storage:", error);
+                gameMessage.textContent = 'Error loading progress. Starting new game.';
                 gameMessage.style.display = 'block';
-                resetGameState(true);
-                showMainMenu();
+                resetGameState(true); // Fallback to full reset on error
+            } finally {
+                showMainMenu(); // Always show main menu after loading (or initializing)
             }
         }
 
+
+        // --- Event Listeners for UI Buttons ---
         levelModeBtn.addEventListener('click', setupLevelMode);
         endlessModeBtn.addEventListener('click', setupEndlessMode);
-        shopBtn.addEventListener('click', () => showUIState('shop'));
-        backToMenuFromShopBtn.addEventListener('click', showMainMenu);
+        pShopBtn.addEventListener('click', () => showUIState('pShop'));
+        eShopBtn.addEventListener('click', () => showUIState('eShop'));
+        backToMenuFromPShopBtn.addEventListener('click', showMainMenu);
+        backToMenuFromEShopBtn.addEventListener('click', showMainMenu);
+        
         nextLevelBtn.addEventListener('click', () => {
             levelCompletionHandled = false;
-            loadLevel(currentLevelIndex); // currentLevelIndex is already the correct next level
+            loadLevel(currentLevelIndex);
         });
         resetGameBtn.addEventListener('click', () => {
             if (gameMode === 'level') {
@@ -1948,17 +2573,8 @@
         });
         returnToMenuBtn.addEventListener('click', showMainMenu);
 
-        if (window.isAuthReady && !window.initialLoadDone) {
-            window.initialLoadDone = true;
-            loadProgress();
-        } else {
-            window.onFirebaseReady = () => {
-                if (!window.initialLoadDone) {
-                    window.initialLoadDone = true;
-                    loadProgress();
-                }
-            };
-        }
+        // Initial setup on window load
+        window.onload = loadProgress;
 
     </script>
 </body>
