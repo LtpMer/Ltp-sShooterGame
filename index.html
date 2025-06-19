@@ -948,7 +948,7 @@
         const eShopItemsContainer = document.getElementById('eShopItemsContainer');
 
         const settingsScreen = document.getElementById('settingsScreen');
-        const volumeSlider = document.getElementById('volumeSlider'); // New volume slider
+        const volumeSlider = document.getElementById('volumeSlider');
         const toggleVolumeBtn = document.getElementById('toggleVolumeBtn');
         const toggleParticlesBtn = document.getElementById('toggleParticlesBtn');
         const resetGameDataBtn = document.getElementById('resetGameDataBtn');
@@ -1201,7 +1201,7 @@
         shootBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys.Space = false; });
 
         // Settings and Reset button event listeners
-        volumeSlider.addEventListener('input', updateVolumeFromSlider); // Listen to slider input
+        volumeSlider.addEventListener('input', updateVolumeFromSlider);
         toggleVolumeBtn.addEventListener('click', toggleVolume);
         toggleParticlesBtn.addEventListener('click', toggleParticles);
         resetGameDataBtn.addEventListener('click', () => showUIState('resetConfirm'));
@@ -1266,7 +1266,7 @@
         }
 
         function shootPlayerBullet() {
-            if (gameSettings.volume > -39) playerShootSynth.triggerAttackRelease("C4", "8n"); /* Play only if not effectively muted */
+            if (gameSettings.volume > -39) playerShootSynth.triggerAttackRelease("C4", "8n");
 
             const bulletDamage = player.baseBulletDamage;
 
@@ -1417,9 +1417,11 @@
                             enemies.splice(j, 1);
                             if (gameMode !== 'endless') {
                                 playerPounds += enemyTypes[enemy.type].value;
-                            } else {
-                                playerEpsilonDollars += enemyTypes[enemy.type].value;
                             }
+                            // Removed E$ earning for killing enemies in endless mode
+                            // else {
+                            //     playerEpsilonDollars += enemyTypes[enemy.type].value;
+                            // }
                             if (gameSettings.volume > -39) explosionSynth.triggerAttackRelease("0.5", "8n");
                             updatePlayerPoundsDisplay();
                         }
@@ -1818,7 +1820,7 @@
                     multiShotEffectEndTime = currentTime + multiShotDuration;
                     gameMessage.textContent = `${multiShotCount}x Shot!`;
                     gameMessage.style.display = 'block';
-                    gameMessage.classList.remove('small-text');
+                    gameMessage.classList.add('small-text');
                     setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
                     break;
             }
@@ -1831,14 +1833,14 @@
                 multiShotEffectEndTime = 0;
                 gameMessage.textContent = 'Multi-shot expired!';
                 gameMessage.style.display = 'block';
-                gameMessage.classList.remove('small-text');
+                gameMessage.classList.add('small-text');
                 setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
             }
             if (cooldownEffectEndTime > 0 && currentTime > cooldownEffectEndTime) {
                 cooldownEffectEndTime = 0;
                 gameMessage.textContent = 'Rapid Fire expired!';
                 gameMessage.style.display = 'block';
-                gameMessage.classList.remove('small-text');
+                gameMessage.classList.add('small-text');
                 setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
             }
         }
@@ -1872,9 +1874,11 @@
                                 enemies.splice(j, 1);
                                 if (gameMode !== 'endless') {
                                     playerPounds += enemyTypes[enemy.type].value;
-                                } else {
-                                    playerEpsilonDollars += enemyTypes[enemy.type].value;
                                 }
+                                // Removed E$ earning for killing enemies in endless mode
+                                // else {
+                                //     playerEpsilonDollars += enemyTypes[enemy.type].value;
+                                // }
                                 if (gameSettings.volume > -39) explosionSynth.triggerAttackRelease("0.5", "8n");
                                 updatePlayerPoundsDisplay();
                             }
@@ -1899,9 +1903,11 @@
                                 enemies.splice(j, 1);
                                 if (gameMode !== 'endless') {
                                     playerPounds += enemyTypes[enemy.type].value;
-                                } else {
-                                    playerEpsilonDollars += enemyTypes[enemy.type].value;
                                 }
+                                // Removed E$ earning for killing enemies in endless mode
+                                // else {
+                                //     playerEpsilonDollars += enemyTypes[enemy.type].value;
+                                // }
                                 if (gameSettings.volume > -39) explosionSynth.triggerAttackRelease("0.5", "8n");
                                 updatePlayerPoundsDisplay();
                             }
@@ -2032,7 +2038,7 @@
 
         function updateParticles() {
             if (!gameSettings.particles) {
-                particles.length = 0; // Clear particles if setting is turned off mid-game
+                particles.length = 0;
                 return;
             }
 
@@ -2068,7 +2074,7 @@
         function updatePlayerPoundsDisplay() {
             if (gameMode === 'endless') {
                 playerPoundsDisplay.textContent = `E$: ${playerEpsilonDollars}`;
-                playerEpsilonDollarsDisplay.style.display = 'none';
+                playerEpsilonDollarsDisplay.style.display = 'none'; // Hide P$ display in endless mode
             } else {
                 playerPoundsDisplay.textContent = `P$: ${playerPounds}`;
                 playerEpsilonDollarsDisplay.textContent = `E$: ${playerEpsilonDollars}`;
@@ -2171,7 +2177,7 @@
                                 requirementsMet = false;
                             }
                         } else {
-                            requirements = false; /* Corrected typo: requirements should be `requirementsMet` */
+                            requirementsMet = false; // Fixed typo here
                         }
                     });
                 }
@@ -2378,7 +2384,7 @@
                     updatePlayerPoundsDisplay();
                     saveProgress();
                 }
-            }, 30000);
+            }, 35000); // 10 E$ every 35 seconds
         }
 
         function stopEpsilonGeneration() {
@@ -2525,26 +2531,24 @@
         function updateVolumeFromSlider() {
             gameSettings.volume = parseFloat(volumeSlider.value);
             Tone.Master.volume.value = gameSettings.volume;
-            updateSettingsDisplay(); // Update toggle button state
+            updateSettingsDisplay();
             saveProgress();
         }
 
         function toggleVolume() {
-            // If volume is currently audible, mute it to -Infinity. Otherwise, restore from saved setting or default.
-            if (Tone.Master.volume.value > -Infinity) {
+            // If master volume is currently muted (-Infinity or close to it), unmute to the last saved volume.
+            // Otherwise, mute it.
+            if (Tone.Master.volume.value <= -39) { // Using -39 as threshold for "muted" to avoid floating point issues with -40
+                Tone.Master.volume.value = gameSettings.volume; // Restore to the slider's last set value
+                volumeSlider.value = gameSettings.volume;
+            } else {
+                gameSettings.volume = Tone.Master.volume.value; // Save current volume before muting
                 Tone.Master.volume.value = -Infinity;
                 volumeSlider.value = -40; // Set slider to min when muted
-            } else {
-                // Restore previous volume or default if it was muted
-                Tone.Master.volume.value = gameSettings.volume;
-                volumeSlider.value = gameSettings.volume; // Set slider to saved volume
             }
-            // Update gameSettings.volume based on the *actual* Tone.Master volume
-            gameSettings.volume = Tone.Master.volume.value; 
-
             updateSettingsDisplay();
             saveProgress();
-            gameMessage.textContent = `Volume: ${Tone.Master.volume.value > -39 ? 'ON' : 'OFF'}`; // Check if it's effectively muted
+            gameMessage.textContent = `Volume: ${Tone.Master.volume.value > -39 ? 'ON' : 'OFF'}`;
             gameMessage.style.display = 'block';
             gameMessage.classList.add('small-text');
             setTimeout(() => { gameMessage.style.display = 'none'; }, 1000);
@@ -2561,11 +2565,9 @@
         }
 
         function updateSettingsDisplay() {
-            // Set slider value
             volumeSlider.value = gameSettings.volume;
-            Tone.Master.volume.value = gameSettings.volume; // Ensure Tone.js master volume is synced
+            Tone.Master.volume.value = gameSettings.volume;
 
-            // Update toggle button text and class based on actual volume (consider if it's effectively muted)
             toggleVolumeBtn.textContent = gameSettings.volume > -39 ? 'ON' : 'OFF';
             toggleVolumeBtn.classList.toggle('active-setting', gameSettings.volume > -39);
             toggleVolumeBtn.classList.toggle('inactive-setting', gameSettings.volume <= -39);
@@ -2579,11 +2581,11 @@
          * Checks screen width and sets mobile controls visibility.
          */
         function checkAndSetMobileControlsVisibility() {
-            if (window.matchMedia('(max-width: 768px)').matches) {
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            if (isMobile) {
                 mobileControls.style.display = 'flex';
             } else {
                 mobileControls.style.display = 'none';
-                // Also ensure keyboard keys are reset if controls disappear, to prevent stuck movement
                 keys.ArrowLeft = false;
                 keys.ArrowRight = false;
                 keys.Space = false;
@@ -2605,7 +2607,7 @@
             gameMessage.style.display = 'none';
             instructionsText.style.display = 'none';
             levelMapContainer.style.display = 'none';
-            mobileControls.style.display = 'none'; // Controlled by checkAndSetMobileControlsVisibility for inGame state
+            mobileControls.style.display = 'none';
 
             nextLevelBtn.style.display = 'none';
             resetGameBtn.style.display = 'none';
@@ -2636,7 +2638,7 @@
                     inGameButtons.style.display = 'flex';
                     resetGameBtn.style.display = 'block';
                     returnToMenuBtn.style.display = 'block';
-                    checkAndSetMobileControlsVisibility(); // Show/hide based on screen size
+                    checkAndSetMobileControlsVisibility();
                     if (gameMode === 'level') {
                         levelDisplay.style.display = 'block';
                         levelMapContainer.style.display = 'flex';
@@ -2718,15 +2720,13 @@
             showUIState('inGame');
 
             if (gameMode === 'level') {
+                // message handled by loadLevel
             } else {
-                gameMessage.textContent = 'Endless Mode: Survive and get high P$!';
-                gameMessage.style.display = 'block';
-                gameMessage.classList.remove('small-text');
-                setTimeout(() => { gameMessage.style.display = 'none'; }, 2000);
+                // Removed the gameMessage.textContent for endless mode intro text
                 gameRunning = true;
                 startEpsilonGeneration();
                 lastBossSpawnAttemptTime = Date.now();
-                Tone.start(); // Ensure Tone.js context starts on user interaction
+                Tone.start();
                 gameLoop();
             }
         }
@@ -2770,7 +2770,7 @@
             }
 
             gameRunning = true;
-            Tone.start(); // Ensure Tone.js context starts on user interaction
+            Tone.start();
             gameLoop();
         }
 
@@ -2891,15 +2891,15 @@
                     completedLevels = new Set(data.completedLevels || []);
 
                     if (data.gameSettings) {
-                        gameSettings.volume = data.gameSettings.volume !== undefined ? data.gameSettings.volume : -10; // Default to -10 if not present
+                        gameSettings.volume = data.gameSettings.volume !== undefined ? data.gameSettings.volume : -10;
                         gameSettings.particles = data.gameSettings.particles !== undefined ? data.gameSettings.particles : true;
                     } else {
-                        gameSettings.volume = -10; // Default if no settings saved
+                        gameSettings.volume = -10;
                         gameSettings.particles = true;
                     }
                     
-                    Tone.Master.volume.value = gameSettings.volume; // Apply loaded volume
-                    updateSettingsDisplay(); // Update settings buttons and slider to reflect loaded state
+                    Tone.Master.volume.value = gameSettings.volume;
+                    updateSettingsDisplay();
 
                     equipBulletMode(player.equippedBulletMode);
                     
@@ -2930,7 +2930,7 @@
         // Initial setup on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', () => {
             loadProgress();
-            window.addEventListener('resize', checkAndSetMobileControlsVisibility); // Add resize listener
+            window.addEventListener('resize', checkAndSetMobileControlsVisibility);
         });
 
     </script>
