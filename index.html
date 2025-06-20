@@ -655,8 +655,6 @@
 
     <script type="module">
         // --- Game Configuration Data ---
-        let enemyDropBonusChance = 0.3; // Made mutable for upgrades
-
         const pShopItems = [
             {
                 id: 'player_speed_1',
@@ -695,47 +693,6 @@
                 cost: 150,
                 effect: () => { player.baseBulletDamage += 1; },
                 maxPurchases: 3,
-                currentPurchases: 0,
-                initialValue: 0
-            },
-            // NEW P$ SHOP UPGRADES
-            {
-                id: 'health_regen',
-                name: "Health Regeneration",
-                description: "Slowly regenerate health over time. (Stacks)",
-                cost: 250,
-                effect: () => { player.healthRegenAmount += 0.005; },
-                maxPurchases: 5,
-                currentPurchases: 0,
-                initialValue: 0
-            },
-            {
-                id: 'bullet_speed_boost',
-                name: "Bullet Speed Boost",
-                description: "Increase your bullet travel speed. (Stacks)",
-                cost: 180,
-                effect: () => { player.bulletSpeedMultiplier += 0.1; },
-                maxPurchases: 5,
-                currentPurchases: 0,
-                initialValue: 0
-            },
-            {
-                id: 'bonus_luck',
-                name: "Bonus Luck",
-                description: "Increases chance of enemies dropping bonuses. (Stacks)",
-                cost: 120,
-                effect: () => { enemyDropBonusChance += 0.05; }, // Directly modifies the global variable
-                maxPurchases: 3,
-                currentPurchases: 0,
-                initialValue: 0
-            },
-            {
-                id: 'pounds_magnet',
-                name: "Pound Magnet",
-                description: "Increase Pounds gained from enemies. (Stacks)",
-                cost: 100,
-                effect: () => { player.poundsMultiplier += 0.05; },
-                maxPurchases: 5,
                 currentPurchases: 0,
                 initialValue: 0
             }
@@ -810,7 +767,7 @@
                 id: 'beam_shot',
                 name: "Beam Shot",
                 description: "Fires a powerful vertical blue energy beam. Equip to activate.",
-                cost: 125, // Updated cost
+                cost: 80,
                 currency: 'E$',
                 effect: () => { /* Effect applied on equip */ },
                 maxPurchases: 1,
@@ -818,58 +775,6 @@
                 isEquippable: true,
                 equippedEffect: () => { player.hasBeamShot = true; },
                 unequippedEffect: () => { player.hasBeamShot = false; },
-                initialValue: 0
-            },
-            // NEW E$ SHOP UPGRADES
-            {
-                id: 'enemy_slow',
-                name: "Enemy Slow",
-                description: "Equip to slow all enemies by 20%.",
-                cost: 75,
-                currency: 'E$',
-                effect: () => { /* Effect applied on equip */ },
-                maxPurchases: 1,
-                currentPurchases: 0,
-                isEquippable: true,
-                equippedEffect: () => { player.enemySlowActive = true; },
-                unequippedEffect: () => { player.enemySlowActive = false; },
-                initialValue: 0
-            },
-            {
-                id: 'shield',
-                name: "Energy Shield",
-                description: "Equip to gain a shield that absorbs one hit every 10 seconds.",
-                cost: 100,
-                currency: 'E$',
-                effect: () => { /* Effect applied on equip */ },
-                maxPurchases: 1,
-                currentPurchases: 0,
-                isEquippable: true,
-                equippedEffect: () => { player.hasShield = true; player.shieldActive = true; player.lastShieldUsedTime = 0; },
-                unequippedEffect: () => { player.hasShield = false; player.shieldActive = false; },
-                initialValue: 0
-            },
-            {
-                id: 'explosive_boost',
-                name: "Explosive Boost",
-                description: "Increase damage of exploding bullets by 50%. (Requires Exploding Bullets)",
-                cost: 30,
-                currency: 'E$',
-                effect: () => { player.explosionDamageMultiplier += 0.5; },
-                maxPurchases: 3,
-                currentPurchases: 0,
-                requires: [{ id: 'exploding_bullets', purchased: 1 }],
-                initialValue: 0
-            },
-            {
-                id: 'crit_chance',
-                name: "Critical Chance",
-                description: "Your bullets have a 2% chance to deal double damage. (Stacks)",
-                cost: 50,
-                currency: 'E$',
-                effect: () => { player.critChance += 0.02; },
-                maxPurchases: 5,
-                currentPurchases: 0,
                 initialValue: 0
             }
         ];
@@ -893,7 +798,6 @@
             }
         }
 
-        // Original Levels
         addLevels(1, 5, {
             tierName: "Easy",
             baseEnemyCount: 5,
@@ -935,11 +839,11 @@
             bossLevel: true,
             message: "Level 10: Confront The Guardian!",
             bossSpecifics: {
-                health: 500, // Buffed
-                movementSpeed: 2.0, // Buffed
-                spreadShotInterval: 1500, // Buffed
-                trackingShotInterval: 3000, // Buffed
-                bulletSpeed: 4.0, // Buffed
+                health: 400,
+                movementSpeed: 1.8,
+                spreadShotInterval: 1800,
+                trackingShotInterval: 3500,
+                bulletSpeed: 3.5,
                 minionsToSummon: 0,
                 minionSummonThresholds: []
             }
@@ -971,13 +875,13 @@
             bossLevel: true,
             message: "Level 20: The Sentinel Awaits!",
             bossSpecifics: {
-                health: 900, // Buffed
-                movementSpeed: 2.8, // Buffed
-                spreadShotInterval: 900, // Buffed
-                trackingShotInterval: 1800, // Buffed
-                bulletSpeed: 5.0, // Buffed
-                minionsToSummon: 4, // Buffed
-                minionSummonThresholds: [0.7, 0.4] // Added threshold
+                health: 700,
+                movementSpeed: 2.5,
+                spreadShotInterval: 1000,
+                trackingShotInterval: 2000,
+                bulletSpeed: 4.5,
+                minionsToSummon: 3,
+                minionSummonThresholds: [0.7]
             }
         });
 
@@ -1007,125 +911,15 @@
             bossLevel: true,
             message: "Level 30: CONFRONT THE ANNIHILATOR!",
             bossSpecifics: {
-                health: 1500, // Buffed
-                movementSpeed: 3.5, // Buffed
-                spreadShotInterval: 700, // Buffed
-                trackingShotInterval: 1400, // Buffed
-                bulletSpeed: 5.5, // Buffed
-                minionsToSummon: 5, // Buffed
-                minionSummonThresholds: [0.9, 0.7, 0.4, 0.2] // More thresholds
+                health: 1200,
+                movementSpeed: 3,
+                spreadShotInterval: 800,
+                trackingShotInterval: 1500,
+                bulletSpeed: 5,
+                minionsToSummon: 4,
+                minionSummonThresholds: [0.9, 0.5, 0.2]
             }
         });
-
-        // NEW LEVELS (31-60)
-        addLevels(31, 39, {
-            tierName: "Very Hard",
-            baseEnemyCount: 45,
-            enemyCountIncrease: 6,
-            baseEnemySpeed: 1.8,
-            enemySpeedIncrease: 0.1,
-            baseSpawnInterval: 600,
-            spawnIntervalDecrease: 40,
-            minSpawnInterval: 250,
-            heavyEnemyChance: 0.6,
-            shooterEnemyChance: 0.4,
-            dodgerEnemyChance: 0.2,
-            armoredEnemyChance: 0.15
-        });
-        levels.push({
-            name: "The Obliterator",
-            enemyCount: 0,
-            enemySpeed: 0,
-            enemySpawnInterval: 9999999,
-            heavyEnemyChance: 0,
-            shooterEnemyChance: 0,
-            dodgerEnemyChance: 0,
-            armoredEnemyChance: 0,
-            bossLevel: true,
-            message: "Level 40: The Obliterator Descends!",
-            bossSpecifics: {
-                health: 2000,
-                movementSpeed: 4.0,
-                spreadShotInterval: 600,
-                trackingShotInterval: 1200,
-                bulletSpeed: 6.0,
-                minionsToSummon: 6,
-                minionSummonThresholds: [0.95, 0.8, 0.6, 0.4, 0.2]
-            }
-        });
-
-        addLevels(41, 49, {
-            tierName: "Extreme",
-            baseEnemyCount: 55,
-            enemyCountIncrease: 7,
-            baseEnemySpeed: 2.2,
-            enemySpeedIncrease: 0.15,
-            baseSpawnInterval: 500,
-            spawnIntervalDecrease: 30,
-            minSpawnInterval: 200,
-            heavyEnemyChance: 0.7,
-            shooterEnemyChance: 0.5,
-            dodgerEnemyChance: 0.3,
-            armoredEnemyChance: 0.2
-        });
-        levels.push({
-            name: "The Tyrant",
-            enemyCount: 0,
-            enemySpeed: 0,
-            enemySpawnInterval: 9999999,
-            heavyEnemyChance: 0,
-            shooterEnemyChance: 0,
-            dodgerEnemyChance: 0,
-            armoredEnemyChance: 0,
-            bossLevel: true,
-            message: "Level 50: Face The Tyrant!",
-            bossSpecifics: {
-                health: 3000,
-                movementSpeed: 4.5,
-                spreadShotInterval: 500,
-                trackingShotInterval: 1000,
-                bulletSpeed: 6.5,
-                minionsToSummon: 7,
-                minionSummonThresholds: [0.95, 0.85, 0.7, 0.55, 0.4, 0.25, 0.1]
-            }
-        });
-
-        addLevels(51, 59, {
-            tierName: "Ultimate",
-            baseEnemyCount: 65,
-            enemyCountIncrease: 8,
-            baseEnemySpeed: 2.5,
-            enemySpeedIncrease: 0.2,
-            baseSpawnInterval: 400,
-            spawnIntervalDecrease: 20,
-            minSpawnInterval: 150,
-            heavyEnemyChance: 0.8,
-            shooterEnemyChance: 0.6,
-            dodgerEnemyChance: 0.4,
-            armoredEnemyChance: 0.25
-        });
-        levels.push({
-            name: "The Omega",
-            enemyCount: 0,
-            enemySpeed: 0,
-            enemySpawnInterval: 9999999,
-            heavyEnemyChance: 0,
-            shooterEnemyChance: 0,
-            dodgerEnemyChance: 0,
-            armoredEnemyChance: 0,
-            bossLevel: true,
-            message: "Level 60: THE FINAL BOSS - THE OMEGA!",
-            bossSpecifics: {
-                health: 5000,
-                movementSpeed: 5.0,
-                spreadShotInterval: 400,
-                trackingShotInterval: 800,
-                bulletSpeed: 7.0,
-                minionsToSummon: 8,
-                minionSummonThresholds: [0.98, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
-            }
-        });
-
         // --- End Game Configuration ---
 
         // --- DOM Element References ---
@@ -1222,19 +1016,7 @@
             hasExplodingBullets: false,
             hasHomingBullets: false,
             hasPiercingShotLevel: 0,
-            initialPiercingShotLevel: 0,
-            
-            // NEW PLAYER UPGRADE STATS
-            healthRegenAmount: 0, // Health regenerated per frame/second
-            bulletSpeedMultiplier: 1.0, // Multiplier for bullet speed
-            poundsMultiplier: 1.0, // Multiplier for pounds gained
-            enemySlowActive: false, // Is enemy slow active (from equippable)
-            hasShield: false, // Does player have the shield upgrade
-            shieldActive: false, // Is the shield currently active
-            shieldCooldown: 10000, // 10 seconds cooldown for shield
-            lastShieldUsedTime: 0, // Timestamp of last shield use
-            explosionDamageMultiplier: 1.0, // Multiplier for explosion orb damage
-            critChance: 0 // Chance to deal critical hit (0.0 - 1.0)
+            initialPiercingShotLevel: 0
         };
 
         const bullets = [];
@@ -1318,17 +1100,19 @@
                 gameMessageElement.classList.remove('small-text');
             }
             showGameMessage = true;
-            clearTimeout(gameMessageElement.dataset.timeoutId);
-            gameMessageElement.dataset.timeoutId = setTimeout(() => {
-                showGameMessage = false;
-                gameMessageElement.textContent = '';
-            }, duration);
+            if (message) {
+                clearTimeout(gameMessageElement.dataset.timeoutId);
+                gameMessageElement.dataset.timeoutId = setTimeout(() => {
+                    showGameMessage = false;
+                    gameMessageElement.textContent = '';
+                }, duration);
+            }
         }
 
         function updateUI() {
             playerPoundsDisplay.textContent = `P$: ${playerPounds}`;
             playerEpsilonDollarsDisplay.textContent = `E$: ${playerEpsilonDollars}`;
-            healthDisplay.textContent = `Health: ${playerHealth}/${playerMaxHealth}`; // Display max health too
+            healthDisplay.textContent = `Health: ${playerHealth}`;
             levelDisplay.textContent = `Level: ${currentLevelIndex + 1}`;
 
             if (boss.exists) {
@@ -1361,15 +1145,6 @@
         function drawPlayer() {
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
-
-            // Draw shield visual if active
-            if (player.hasShield && player.shieldActive) {
-                ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(player.x + player.width / 2, player.y + player.height / 2, Math.max(player.width, player.height) / 2 + 5, 0, Math.PI * 2);
-                ctx.stroke();
-            }
         }
 
         function updatePlayer() {
@@ -1394,23 +1169,12 @@
                     canShoot = true;
                 }, currentEffectiveShootCooldown);
             }
-
-            // Apply health regeneration
-            if (player.healthRegenAmount > 0 && playerHealth < playerMaxHealth) {
-                playerHealth = Math.min(playerHealth + player.healthRegenAmount, playerMaxHealth);
-            }
         }
 
         function shootPlayerBullet() {
             if (gameSettings.volume > -39) playerShootSynth.triggerAttackRelease("C4", "8n");
 
-            let bulletDamage = player.baseBulletDamage;
-            // Apply critical hit chance
-            if (player.critChance > 0 && Math.random() < player.critChance) {
-                bulletDamage *= 2;
-                showMessage('CRITICAL HIT!', true, 500);
-            }
-
+            const bulletDamage = player.baseBulletDamage;
             const bulletWidth = 4;
             const bulletHeight = 10;
             const bulletColor = '#ffdd00';
@@ -1468,8 +1232,7 @@
         }
 
         function updateBullets() {
-            const baseBulletSpeed = 7;
-            const currentBulletSpeed = baseBulletSpeed * player.bulletSpeedMultiplier;
+            const bulletSpeed = 7;
 
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const bullet = bullets[i];
@@ -1500,13 +1263,13 @@
                             const angle = Math.atan2(dy, dx);
 
                             const homingStrength = 0.05;
-                            bullet.x += Math.cos(angle) * currentBulletSpeed * homingStrength;
-                            bullet.y += Math.sin(angle) * currentBulletSpeed * homingStrength - currentBulletSpeed * (1 - homingStrength);
+                            bullet.x += Math.cos(angle) * bulletSpeed * homingStrength;
+                            bullet.y += Math.sin(angle) * bulletSpeed * homingStrength - bulletSpeed * (1 - homingStrength);
                         } else {
-                            bullet.y -= currentBulletSpeed;
+                            bullet.y -= bulletSpeed;
                         }
                     } else {
-                        bullet.y -= currentBulletSpeed;
+                        bullet.y -= bulletSpeed;
                     }
 
                     if (bullet.y < 0) {
@@ -1543,7 +1306,7 @@
         function createExplosion(x, y) {
             const orbSize = 40;
             const orbLifetime = 60;
-            const orbDamage = 1 * player.explosionDamageMultiplier; // Apply explosion damage multiplier
+            const orbDamage = 1;
 
             explosionOrbs.push({
                 x: x - orbSize / 2,
@@ -1592,7 +1355,7 @@
                             }
                             enemies.splice(j, 1);
                             if (gameMode !== 'endless') {
-                                playerPounds += Math.round(enemyTypes[enemy.type].value * player.poundsMultiplier); // Apply pounds multiplier
+                                playerPounds += enemyTypes[enemy.type].value;
                             }
                             if (gameSettings.volume > -39) explosionSynth.triggerAttackRelease("0.5", "8n");
                         }
@@ -1751,9 +1514,7 @@
 
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
-                // Apply enemy slow if active
-                const currentEnemySpeed = player.enemySlowActive ? enemy.speed * 0.8 : enemy.speed; // 20% slow
-                enemy.y += currentEnemySpeed;
+                enemy.y += enemy.speed;
 
                 if (enemy.canShoot && currentTime - enemy.lastShotTime > enemy.shootCooldown) {
                     shootEnemyBullet(enemy);
@@ -1845,19 +1606,21 @@
         function spawnBoss() {
             if (!boss.exists) {
                 boss.exists = true;
-                // Use the config for the current level's boss
-                const currentBossConfig = levels[currentLevelIndex].bossSpecifics;
+                const bossLevels = levels.filter(level => level.bossLevel);
+                const randomBossLevelConfig = bossLevels[Math.floor(Math.random() * bossLevels.length)];
 
-                boss.maxHealth = currentBossConfig.health;
+                const bossSpecs = randomBossLevelConfig.bossSpecifics;
+
+                boss.maxHealth = bossSpecs.health;
                 boss.health = boss.maxHealth;
-                boss.speed = currentBossConfig.movementSpeed;
-                boss.shootCooldownSpread = currentBossConfig.spreadShotInterval;
-                boss.shootCooldownTracking = currentBossConfig.trackingShotInterval;
-                boss.bulletSpeedOverride = currentBossConfig.bulletSpeed;
+                boss.speed = bossSpecs.movementSpeed;
+                boss.shootCooldownSpread = bossSpecs.spreadShotInterval;
+                boss.shootCooldownTracking = bossSpecs.trackingShotInterval;
+                boss.bulletSpeedOverride = bossSpecs.bulletSpeed;
                 boss.width = 100;
                 boss.height = 100;
-                boss.minionsToSummon = currentBossConfig.minionsToSummon || 0;
-                boss.minionSummonThresholds = currentBossConfig.minionSummonThresholds || [];
+                boss.minionsToSummon = bossSpecs.minionsToSummon || 0;
+                boss.minionSummonThresholds = bossSpecs.minionSummonThresholds || [];
                 boss.summonedMinionsAtThreshold = new Array(boss.minionSummonThresholds.length).fill(false);
 
                 boss.x = CANVAS_WIDTH / 2 - boss.width / 2;
@@ -1866,7 +1629,7 @@
                 boss.lastShotTimeSpread = Date.now();
                 boss.lastShotTimeTracking = Date.now();
 
-                showMessage(`BOSS ALERT! ${levels[currentLevelIndex].name}!`, false, 2000);
+                showMessage(`BOSS ALERT! ${randomBossLevelConfig.name}!`, false, 2000);
             }
         }
 
@@ -1927,15 +1690,18 @@
         }
 
         function createBonus(x, y) {
-            // enemyDropBonusChance is now a mutable global
+            const enemyDropBonusChance = 0.3;
+            const bonusWidth = 20;
+            const bonusHeight = 20;
+
             if (Math.random() < enemyDropBonusChance) {
                 const types = Object.keys(bonusTypes);
                 const randomType = types[Math.floor(Math.random() * types.length)];
                 bonuses.push({
                     x: x,
                     y: y,
-                    width: 20, // bonusWidth
-                    height: 20, // bonusHeight
+                    width: bonusWidth,
+                    height: bonusHeight,
                     type: randomType,
                     color: bonusTypes[randomType].color,
                     label: bonusTypes[randomType].label
@@ -1969,7 +1735,7 @@
             const currentTime = Date.now();
             switch (bonusType) {
                 case 'HEALTH':
-                    playerHealth = Math.min(playerHealth + 1, playerMaxHealth + 2); // Cap at max health + 2 for temporary overheal
+                    playerHealth = Math.min(playerHealth + 1, playerMaxHealth + 2);
                     showMessage('Health Boost!', false, 1000);
                     break;
                 case 'COOLDOWN':
@@ -1995,12 +1761,6 @@
                 cooldownEffectEndTime = 0;
                 showMessage('Rapid Fire expired!', true, 1000);
             }
-
-            // Shield cooldown check
-            if (player.hasShield && !player.shieldActive && currentTime - player.lastShieldUsedTime > player.shieldCooldown) {
-                player.shieldActive = true;
-                showMessage('Shield Ready!', true, 1000);
-            }
         }
 
         function handleCollisions() {
@@ -2025,7 +1785,7 @@
                                 }
                                 enemies.splice(j, 1);
                                 if (gameMode !== 'endless') {
-                                    playerPounds += Math.round(enemyTypes[enemy.type].value * player.poundsMultiplier);
+                                    playerPounds += enemyTypes[enemy.type].value;
                                 }
                                 if (gameSettings.volume > -39) explosionSynth.triggerAttackRelease("0.5", "8n");
                             }
@@ -2048,7 +1808,7 @@
                                 }
                                 enemies.splice(j, 1);
                                 if (gameMode !== 'endless') {
-                                    playerPounds += Math.round(enemyTypes[enemy.type].value * player.poundsMultiplier);
+                                    playerPounds += enemyTypes[enemy.type].value;
                                 }
                                 if (gameSettings.volume > -39) explosionSynth.triggerAttackRelease("0.5", "8n");
                             }
@@ -2083,23 +1843,16 @@
             for (let i = enemies.length - 1; i >= 0; i--) {
                 if (checkCollision(player, enemies[i])) {
                     enemies.splice(i, 1);
-                    if (player.hasShield && player.shieldActive) {
-                        player.shieldActive = false;
-                        player.lastShieldUsedTime = Date.now();
-                        showMessage('Shield Activated!', true, 1000);
-                        if (gameSettings.volume > -39) hitSynth.triggerAttackRelease("C5", "16n"); // Shield sound
-                    } else {
-                        playerHealth -= 1;
-                        if (playerHealth <= 0) {
-                            if (gameSettings.particles) createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50);
-                            endGame('Game Over! You were hit!');
-                        }
-                        if (gameSettings.volume > -39 && Date.now() - lastHitSoundTime > hitSoundCooldown) {
-                            hitSynth.triggerAttackRelease("C2", "8n");
-                            lastHitSoundTime = Date.now();
-                        }
-                        if (gameSettings.volume > -39) explosionSynth.triggerAttackRelease("0.5", "8n");
+                    playerHealth -= 1;
+                    if (playerHealth <= 0) {
+                        if (gameSettings.particles) createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50);
+                        endGame('Game Over! You were hit!');
                     }
+                    if (gameSettings.volume > -39 && Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                        hitSynth.triggerAttackRelease("C2", "8n");
+                        lastHitSoundTime = Date.now();
+                    }
+                    if (gameSettings.volume > -39) explosionSynth.triggerAttackRelease("0.5", "8n");
                 }
             }
 
@@ -2108,21 +1861,14 @@
                 const enemyBullet = enemyBullets[i];
                 if (checkCollision(player, enemyBullet)) {
                     enemyBullets.splice(i, 1);
-                    if (player.hasShield && player.shieldActive) {
-                        player.shieldActive = false;
-                        player.lastShieldUsedTime = Date.now();
-                        showMessage('Shield Activated!', true, 1000);
-                        if (gameSettings.volume > -39) hitSynth.triggerAttackRelease("C5", "16n"); // Shield sound
-                    } else {
-                        playerHealth -= 1;
-                        if (playerHealth <= 0) {
-                            if (gameSettings.particles) createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50);
-                            endGame('Game Over! You were hit!');
-                        }
-                        if (gameSettings.volume > -39 && Date.now() - lastHitSoundTime > hitSoundCooldown) {
-                            hitSynth.triggerAttackRelease("C2", "8n");
-                            lastHitSoundTime = Date.now();
-                        }
+                    playerHealth -= 1;
+                    if (playerHealth <= 0) {
+                        if (gameSettings.particles) createExplosionParticles(player.x + player.width / 2, player.y + player.height / 2, player.color, 50);
+                        endGame('Game Over! You were hit!');
+                    }
+                    if (gameSettings.volume > -39 && Date.now() - lastHitSoundTime > hitSoundCooldown) {
+                        hitSynth.triggerAttackRelease("C2", "8n");
+                        lastHitSoundTime = Date.now();
                     }
                     break;
                 }
@@ -2242,17 +1988,6 @@
                 player.hasBeamShot = false;
                 player.hasExplodingBullets = false;
                 player.hasHomingBullets = false;
-                // Reset new player upgrade stats
-                player.healthRegenAmount = 0;
-                player.bulletSpeedMultiplier = 1.0;
-                player.poundsMultiplier = 1.0;
-                player.enemySlowActive = false;
-                player.hasShield = false;
-                player.shieldActive = false;
-                player.lastShieldUsedTime = 0;
-                player.explosionDamageMultiplier = 1.0;
-                player.critChance = 0;
-                enemyDropBonusChance = 0.3; // Reset global variable
 
                 currentLevelIndex = 0;
                 completedLevels = new Set();
@@ -2261,7 +1996,7 @@
                 eShopItems.forEach(item => {
                     item.currentPurchases = item.initialValue;
                     if (item.isEquippable && item.unequippedEffect) {
-                        item.unequippedEffect(); // Call unequip effect for all equippables
+                        item.unequippedEffect(); // Call unequip effect
                     }
                 });
             }
@@ -2312,18 +2047,6 @@
                     playerHasPiercingShotLevel: player.hasPiercingShotLevel,
                     equippedBulletMode: equippedBulletMode,
 
-                    // Save new player upgrade stats
-                    healthRegenAmount: player.healthRegenAmount,
-                    bulletSpeedMultiplier: player.bulletSpeedMultiplier,
-                    poundsMultiplier: player.poundsMultiplier,
-                    enemySlowActive: player.enemySlowActive,
-                    hasShield: player.hasShield,
-                    shieldActive: player.shieldActive,
-                    lastShieldUsedTime: player.lastShieldUsedTime,
-                    explosionDamageMultiplier: player.explosionDamageMultiplier,
-                    critChance: player.critChance,
-                    enemyDropBonusChance: enemyDropBonusChance, // Save global variable
-
                     pShopItems: pShopItemsData,
                     eShopItems: eShopItemsData,
                     currentLevelIndex: currentLevelIndex,
@@ -2353,34 +2076,11 @@
                     player.hasPiercingShotLevel = data.playerHasPiercingShotLevel || player.initialPiercingShotLevel;
                     equippedBulletMode = data.equippedBulletMode || 'normal';
 
-                    // Load new player upgrade stats
-                    player.healthRegenAmount = data.healthRegenAmount || 0;
-                    player.bulletSpeedMultiplier = data.bulletSpeedMultiplier || 1.0;
-                    player.poundsMultiplier = data.poundsMultiplier || 1.0;
-                    player.enemySlowActive = data.enemySlowActive || false;
-                    player.hasShield = data.hasShield || false;
-                    player.shieldActive = data.shieldActive || false;
-                    player.lastShieldUsedTime = data.lastShieldUsedTime || 0;
-                    player.explosionDamageMultiplier = data.explosionDamageMultiplier || 1.0;
-                    player.critChance = data.critChance || 0;
-                    enemyDropBonusChance = data.enemyDropBonusChance || 0.3; // Load global variable
-
-
                     if (data.pShopItems) {
                         data.pShopItems.forEach(savedItem => {
                             const shopItem = pShopItems.find(item => item.id === savedItem.id);
                             if (shopItem) {
                                 shopItem.currentPurchases = savedItem.currentPurchases;
-                                // Re-apply effects of non-equippable upgrades
-                                if (!shopItem.isEquippable && shopItem.effect && savedItem.currentPurchases > shopItem.initialValue) {
-                                     // For max health, we don't re-apply, as playerMaxHealth is directly loaded
-                                     // For other effects, re-apply for each purchase
-                                    for(let i = 0; i < savedItem.currentPurchases - shopItem.initialValue; i++) {
-                                        if (shopItem.id !== 'max_health_upgrade') { // Max health is handled by direct load
-                                            shopItem.effect();
-                                        }
-                                    }
-                                }
                             }
                         });
                     }
@@ -2389,12 +2089,6 @@
                             const shopItem = eShopItems.find(item => item.id === savedItem.id);
                             if (shopItem) {
                                 shopItem.currentPurchases = savedItem.currentPurchases;
-                                // Re-apply effects for non-equippable E$ items
-                                if (!shopItem.isEquippable && shopItem.effect && savedItem.currentPurchases > shopItem.initialValue) {
-                                    for(let i = 0; i < savedItem.currentPurchases - shopItem.initialValue; i++) {
-                                        shopItem.effect();
-                                    }
-                                }
                             }
                         });
                     }
@@ -2687,9 +2381,6 @@
                 player.hasBeamShot = false;
                 player.hasExplodingBullets = false;
                 player.hasHomingBullets = false;
-                player.enemySlowActive = false; // Reset if unequipped
-                player.hasShield = false; // Reset if unequipped
-                player.shieldActive = false; // Reset if unequipped
                 showMessage(`Equipped Normal Bullets!`, true);
             }
             saveProgress();
@@ -2770,17 +2461,6 @@
             player.hasBeamShot = false;
             player.hasExplodingBullets = false;
             player.hasHomingBullets = false;
-            // Reset new player upgrade stats
-            player.healthRegenAmount = 0;
-            player.bulletSpeedMultiplier = 1.0;
-            player.poundsMultiplier = 1.0;
-            player.enemySlowActive = false;
-            player.hasShield = false;
-            player.shieldActive = false;
-            player.lastShieldUsedTime = 0;
-            player.explosionDamageMultiplier = 1.0;
-            player.critChance = 0;
-            enemyDropBonusChance = 0.3; // Reset global variable
 
             playerHealth = initialPlayerMaxHealth; // Reset health to initial max
 
